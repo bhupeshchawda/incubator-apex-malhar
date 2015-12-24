@@ -20,7 +20,10 @@ package com.datatorrent.contrib.hbase;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Queue;
 
+import com.datatorrent.lib.util.FieldInfo;
+import com.google.common.collect.Queues;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -35,6 +38,8 @@ import com.datatorrent.lib.util.PojoUtils;
 import com.datatorrent.lib.util.PojoUtils.Setter;
 import com.datatorrent.lib.util.TableInfo;
 import com.datatorrent.api.Context.OperatorContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @displayName HBase Input Operator
@@ -45,16 +50,25 @@ import com.datatorrent.api.Context.OperatorContext;
 @Evolving
 public class HBasePOJOInputOperator extends HBaseInputOperator<Object>
 {
+  public static final int DEF_HINT_SCAN_LOOKAHEAD = 2;
+  public static final int DEF_QUEUE_SIZE = 1000;
+  public static final int DEF_SLEEP_MILLIS = 10;
+
   private TableInfo<HBaseFieldInfo> tableInfo;
   protected HBaseStore store;
   private String pojoTypeName;
   private String startRow;
+  private String endRow;
   private String lastReadRow;
+  private Queue<Result> resultQueue = Queues.newLinkedBlockingQueue(DEF_QUEUE_SIZE);
 
   protected transient Class pojoType;
   private transient Setter<Object, String> rowSetter;
   protected transient FieldValueGenerator<HBaseFieldInfo> fieldValueGenerator;
   protected transient BytesValueConverter valueConverter;
+  protected transient Scan scan;
+  protected transient ResultScanner scanner;
+  protected transient Thread readThread;
 
   public static class BytesValueConverter implements ValueConverter<HBaseFieldInfo>
   {
@@ -63,6 +77,11 @@ public class HBasePOJOInputOperator extends HBaseInputOperator<Object>
     {
       return fieldInfo.toValue( (byte[])value );
     }
+  }
+
+  public static class HBaseFieldValueGenerator<T extends FieldInfo> extends FieldValueGenerator
+  {
+
   }
 
   @Override
@@ -75,6 +94,28 @@ public class HBasePOJOInputOperator extends HBaseInputOperator<Object>
       rowSetter = PojoUtils.createSetter(pojoType, tableInfo.getRowOrIdExpression(), String.class);
       fieldValueGenerator = FieldValueGenerator.getFieldValueGenerator(pojoType, tableInfo.getFieldsInfo() );
       valueConverter = new BytesValueConverter();
+      scan = nextScan();
+      scanner = store.getTable().getScanner(scan);
+      readThread = new Thread(new Runnable()
+      {
+        @Override
+        public void run()
+        {
+          try {
+            Result result;
+            while ((result = scanner.next()) != null) {
+              while (!resultQueue.offer(result)) {
+                Thread.sleep(DEF_SLEEP_MILLIS);
+              }
+            }
+          } catch (Exception e) {
+            logger.debug("Exception in fetching results");
+            throw new RuntimeException(e.getMessage());
+          } finally {
+            scanner.close();
+          }
+        }
+      });
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
@@ -99,48 +140,47 @@ public class HBasePOJOInputOperator extends HBaseInputOperator<Object>
   public void emitTuples()
   {
     try {
-      Scan scan = nextScan();
-      if (scan == null)
+      Result result = resultQueue.poll();
+      if (result == null) {
+        Thread.sleep(DEF_SLEEP_MILLIS);
+      }
+      String readRow = Bytes.toString(result.getRow());
+      if( readRow.equals( lastReadRow ))
         return;
 
-      ResultScanner resultScanner = store.getTable().getScanner(scan);
+      Object instance = pojoType.newInstance();
+      rowSetter.set(instance, readRow);
 
-      while (true) {
-        Result result = resultScanner.next();
-        if (result == null)
-          break;
-
-        String readRow = Bytes.toString(result.getRow());
-        if( readRow.equals( lastReadRow ))
-          continue;
-
-        Object instance = pojoType.newInstance();
-        rowSetter.set(instance, readRow);
-
-        List<Cell> cells = result.listCells();
-
-        for (Cell cell : cells) {
-          String columnName = Bytes.toString(CellUtil.cloneQualifier(cell));
-          byte[] value = CellUtil.cloneValue(cell);
-          fieldValueGenerator.setColumnValue( instance, columnName, value, valueConverter );
-        }
-
-        outputPort.emit(instance);
-        lastReadRow = readRow;
+       List<Cell> cells = result.listCells();
+       for (Cell cell : cells) {
+        String columnName = Bytes.toString(CellUtil.cloneQualifier(cell));
+        byte[] value = CellUtil.cloneValue(cell);
+        fieldValueGenerator.setColumnValue( instance, columnName, value, valueConverter );
       }
 
+      outputPort.emit(instance);
+      lastReadRow = readRow;
     } catch (Exception e) {
       throw new RuntimeException(e.getMessage());
     }
-
   }
 
   protected Scan nextScan()
   {
+    Scan scan;
     if(lastReadRow==null && startRow==null )
-      return new Scan();
-    else
-      return new Scan( Bytes.toBytes( lastReadRow == null ? startRow : lastReadRow ) );
+      scan = new Scan();
+    else if(endRow == null) {
+      scan = new Scan(Bytes.toBytes(lastReadRow == null ? startRow : lastReadRow));
+    }
+    else {
+      scan = new Scan(Bytes.toBytes(lastReadRow == null ? startRow : lastReadRow), Bytes.toBytes(endRow));
+    }
+    for (HBaseFieldInfo field : tableInfo.getFieldsInfo()) {
+      scan.addColumn(Bytes.toBytes(field.getFamilyName()), Bytes.toBytes(field.getColumnName()));
+    }
+    scan.setAttribute(Scan.HINT_LOOKAHEAD, Bytes.toBytes(DEF_HINT_SCAN_LOOKAHEAD));
+    return scan;
   }
 
   public HBaseStore getStore()
@@ -181,4 +221,17 @@ public class HBasePOJOInputOperator extends HBaseInputOperator<Object>
   {
     this.startRow = startRow;
   }
+
+  public String getEndRow()
+  {
+    return endRow;
+  }
+
+  public void setEndRow(String endRow)
+  {
+    this.endRow = endRow;
+  }
+
+  private static final Logger logger = LoggerFactory.getLogger(HBasePOJOInputOperator.class);
+
 }
