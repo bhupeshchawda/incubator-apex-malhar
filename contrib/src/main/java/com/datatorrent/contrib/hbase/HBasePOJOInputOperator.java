@@ -19,7 +19,9 @@
 package com.datatorrent.contrib.hbase;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 
 import com.datatorrent.lib.util.FieldInfo;
@@ -64,7 +66,7 @@ public class HBasePOJOInputOperator extends HBaseInputOperator<Object>
 
   protected transient Class pojoType;
   private transient Setter<Object, String> rowSetter;
-  protected transient FieldValueGenerator<HBaseFieldInfo> fieldValueGenerator;
+  protected transient HBaseFieldValueGenerator fieldValueGenerator;
   protected transient BytesValueConverter valueConverter;
   protected transient Scan scan;
   protected transient ResultScanner scanner;
@@ -77,11 +79,6 @@ public class HBasePOJOInputOperator extends HBaseInputOperator<Object>
     {
       return fieldInfo.toValue( (byte[])value );
     }
-  }
-
-  public static class HBaseFieldValueGenerator<T extends FieldInfo> extends FieldValueGenerator
-  {
-
   }
 
   @Override
@@ -153,9 +150,10 @@ public class HBasePOJOInputOperator extends HBaseInputOperator<Object>
 
        List<Cell> cells = result.listCells();
        for (Cell cell : cells) {
-        String columnName = Bytes.toString(CellUtil.cloneQualifier(cell));
+         String columnName = Bytes.toString(CellUtil.cloneQualifier(cell));
+         String columnFamily = Bytes.toString(CellUtil.cloneFamily(cell));
         byte[] value = CellUtil.cloneValue(cell);
-        fieldValueGenerator.setColumnValue( instance, columnName, value, valueConverter );
+        fieldValueGenerator.setColumnValue( instance, columnName, columnFamily, value, valueConverter );
       }
 
       outputPort.emit(instance);
