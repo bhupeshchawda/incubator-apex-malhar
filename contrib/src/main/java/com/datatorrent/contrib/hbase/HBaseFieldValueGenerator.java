@@ -10,6 +10,13 @@ import com.datatorrent.lib.util.PojoUtils;
  */
 public class HBaseFieldValueGenerator extends FieldValueGenerator<HBaseFieldInfo>
 {
+
+  public static HBaseFieldValueGenerator getHBaseFieldValueGenerator(final Class<?> clazz, List<HBaseFieldInfo>
+      fieldInfos)
+  {
+    return new HBaseFieldValueGenerator(clazz, fieldInfos);
+  }
+
   protected HBaseFieldValueGenerator(final Class<?> clazz, List<HBaseFieldInfo> fieldInfos)
   {
     for (HBaseFieldInfo fieldInfo : fieldInfos) {
@@ -30,7 +37,7 @@ public class HBaseFieldValueGenerator extends FieldValueGenerator<HBaseFieldInfo
   public void setColumnValue(Object instance, String columnName, String columnFamily, Object value,
                              ValueConverter<HBaseFieldInfo> valueConverter)
   {
-    HBaseFieldInfo fieldInfo = fieldInfoMap.get(columnName + ":" + columnFamily);
+    HBaseFieldInfo fieldInfo = fieldInfoMap.get(columnFamily + ":" + columnName);
     PojoUtils.Setter<Object, Object> setter = fieldSetterMap.get(fieldInfo);
     setter.set(instance, valueConverter == null ? value : valueConverter.convertValue(fieldInfo, value));
   }
