@@ -35,7 +35,7 @@ public class HBaseFieldValueGenerator extends FieldValueGenerator<HBaseFieldInfo
   }
 
   public void setColumnValue(Object instance, String columnName, String columnFamily, Object value,
-                             ValueConverter<HBaseFieldInfo> valueConverter)
+      ValueConverter<HBaseFieldInfo> valueConverter)
   {
     HBaseFieldInfo fieldInfo = fieldInfoMap.get(columnFamily + ":" + columnName);
     PojoUtils.Setter<Object, Object> setter = fieldSetterMap.get(fieldInfo);

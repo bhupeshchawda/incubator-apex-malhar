@@ -19,15 +19,12 @@
 package com.datatorrent.contrib.hbase;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 
-import com.datatorrent.api.Context;
-import com.datatorrent.api.Operator;
-import com.datatorrent.lib.util.FieldInfo;
-import com.google.common.collect.Queues;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -36,16 +33,21 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import com.google.common.collect.Queues;
+
+import com.datatorrent.api.AutoMetric;
+import com.datatorrent.api.Context;
+import com.datatorrent.api.Operator;
 import com.datatorrent.lib.util.FieldValueGenerator;
 import com.datatorrent.lib.util.FieldValueGenerator.ValueConverter;
 import com.datatorrent.lib.util.PojoUtils;
 import com.datatorrent.lib.util.PojoUtils.Setter;
 import com.datatorrent.lib.util.TableInfo;
 import com.datatorrent.api.Context.OperatorContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
+ * HBasePOJOInputOperator reads data from a HBase store, converts it to a POJO and puts it on the output port.
+ * The read from HBase is asynchronous.
  * @displayName HBase Input Operator
  * @category Input
  * @tags database, nosql, pojo, hbase
@@ -65,6 +67,8 @@ public class HBasePOJOInputOperator extends HBaseInputOperator<Object> implement
   private String endRow;
   private String lastReadRow;
   private Queue<Result> resultQueue = Queues.newLinkedBlockingQueue(DEF_QUEUE_SIZE);
+  @AutoMetric
+  private long tuplesRead;
 
   protected transient Class pojoType;
   private transient Setter<Object, String> rowSetter;
@@ -137,6 +141,7 @@ public class HBasePOJOInputOperator extends HBaseInputOperator<Object> implement
   @Override
   public void beginWindow(long windowId)
   {
+    tuplesRead = 0;
   }
 
   @Override
@@ -175,6 +180,7 @@ public class HBasePOJOInputOperator extends HBaseInputOperator<Object> implement
       }
 
       outputPort.emit(instance);
+      tuplesRead++;
       lastReadRow = readRow;
     } catch (Exception e) {
       throw new RuntimeException(e);
