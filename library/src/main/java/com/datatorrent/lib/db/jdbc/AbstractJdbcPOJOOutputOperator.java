@@ -21,10 +21,7 @@ package com.datatorrent.lib.db.jdbc;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -65,20 +62,16 @@ import com.datatorrent.lib.util.PojoUtils.GetterShort;
  * @since 2.1.0
  */
 @Evolving
-public class AbstractJdbcPOJOOutputOperator extends AbstractJdbcTransactionableOutputOperator<Object>
+public abstract class AbstractJdbcPOJOOutputOperator extends AbstractJdbcTransactionableOutputOperator<Object>
     implements Operator.ActivationListener<OperatorContext>
 {
   @NotNull
-  private List<FieldInfo> fieldInfos;
-
-  private List<Integer> columnDataTypes;
+  private List<JdbcFieldInfo> fieldInfos;
 
   @NotNull
   private String tablename;
 
   private final transient List<JdbcPOJOInputOperator.ActiveFieldInfo> columnFieldGetters;
-
-  private String insertStatement;
 
   private transient Class<?> pojoClass;
 
@@ -102,51 +95,9 @@ public class AbstractJdbcPOJOOutputOperator extends AbstractJdbcTransactionableO
   @Override
   public void setup(OperatorContext context)
   {
-    StringBuilder columns = new StringBuilder();
-    StringBuilder values = new StringBuilder();
-    for (int i = 0; i < fieldInfos.size(); i++) {
-      columns.append(fieldInfos.get(i).getColumnName());
-      values.append("?");
-      if (i < fieldInfos.size() - 1) {
-        columns.append(",");
-        values.append(",");
-      }
-    }
-    insertStatement = "INSERT INTO "
-            + tablename
-            + " (" + columns.toString() + ")"
-            + " VALUES (" + values.toString() + ")";
-    LOG.debug("insert statement is {}", insertStatement);
-
     super.setup(context);
-
-    if (columnDataTypes == null) {
-      try {
-        populateColumnDataTypes(columns.toString());
-      } catch (SQLException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
     for (FieldInfo fi : fieldInfos) {
       columnFieldGetters.add(new JdbcPOJOInputOperator.ActiveFieldInfo(fi));
-    }
-  }
-
-  protected void populateColumnDataTypes(String columns) throws SQLException
-  {
-    columnDataTypes = Lists.newArrayList();
-    try (Statement st = store.getConnection().createStatement()) {
-      ResultSet rs = st.executeQuery("select " + columns + " from " + tablename);
-
-      ResultSetMetaData rsMetaData = rs.getMetaData();
-      LOG.debug("resultSet MetaData column count {}", rsMetaData.getColumnCount());
-
-      for (int i = 1; i <= rsMetaData.getColumnCount(); i++) {
-        int type = rsMetaData.getColumnType(i);
-        columnDataTypes.add(type);
-        LOG.debug("column name {} type {}", rsMetaData.getColumnName(i), type);
-      }
     }
   }
 
@@ -157,19 +108,12 @@ public class AbstractJdbcPOJOOutputOperator extends AbstractJdbcTransactionableO
   }
 
   @Override
-  protected String getUpdateCommand()
-  {
-    LOG.debug("insert statement is {}", insertStatement);
-    return insertStatement;
-  }
-
-  @Override
   @SuppressWarnings("unchecked")
   protected void setStatementParameters(PreparedStatement statement, Object tuple) throws SQLException
   {
-    final int size = columnDataTypes.size();
+    final int size = fieldInfos.size();
     for (int i = 0; i < size; i++) {
-      final int type = columnDataTypes.get(i);
+      final int type = fieldInfos.get(i).getSqlType();
       JdbcPOJOInputOperator.ActiveFieldInfo activeFieldInfo = columnFieldGetters.get(i);
       switch (type) {
         case (Types.CHAR):
@@ -237,7 +181,7 @@ public class AbstractJdbcPOJOOutputOperator extends AbstractJdbcTransactionableO
   /**
    * A list of {@link FieldInfo}s where each item maps a column name to a pojo field name.
    */
-  public List<FieldInfo> getFieldInfos()
+  public List<JdbcFieldInfo> getFieldInfos()
   {
     return fieldInfos;
   }
@@ -250,7 +194,7 @@ public class AbstractJdbcPOJOOutputOperator extends AbstractJdbcTransactionableO
    * @description $[].pojoFieldExpression pojo field name or expression
    * @useSchema $[].pojoFieldExpression input.fields[].name
    */
-  public void setFieldInfos(List<FieldInfo> fieldInfos)
+  public void setFieldInfos(List<JdbcFieldInfo> fieldInfos)
   {
     this.fieldInfos = fieldInfos;
   }
@@ -273,9 +217,9 @@ public class AbstractJdbcPOJOOutputOperator extends AbstractJdbcTransactionableO
   @Override
   public void activate(OperatorContext context)
   {
-    final int size = columnDataTypes.size();
+    final int size = fieldInfos.size();
     for (int i = 0; i < size; i++) {
-      final int type = columnDataTypes.get(i);
+      final int type = fieldInfos.get(i).getSqlType();
       JdbcPOJOInputOperator.ActiveFieldInfo activeFieldInfo = columnFieldGetters.get(i);
       switch (type) {
         case (Types.CHAR):
