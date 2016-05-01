@@ -88,9 +88,12 @@ public abstract class AbstractKafkaInputOperator implements InputOperator, Opera
   }
 
   @NotNull
-  private String[] clusters;
+  private String clustersDelimited;
 
   @NotNull
+  private String topicsDelimited;
+
+  private String[] clusters;
   private String[] topics;
 
   /**
@@ -413,8 +416,9 @@ public abstract class AbstractKafkaInputOperator implements InputOperator, Opera
     return initialPartitionCount;
   }
 
-  public void setClusters(String clusters)
+  public void setClustersDelimited(String clusters)
   {
+    this.clustersDelimited = clusters;
     this.clusters = clusters.split(";");
   }
 
@@ -428,9 +432,10 @@ public abstract class AbstractKafkaInputOperator implements InputOperator, Opera
     return Joiner.on(';').join(clusters);
   }
 
-  public void setTopics(String topics)
+  public void setTopicsDelimited(String topicsDelimited)
   {
-    this.topics = Iterables.toArray(Splitter.on(',').trimResults().omitEmptyStrings().split(topics), String.class);
+    this.topicsDelimited = topicsDelimited;
+    this.topics = Iterables.toArray(Splitter.on(',').trimResults().omitEmptyStrings().split(topicsDelimited), String.class);
   }
 
   /**

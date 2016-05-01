@@ -55,7 +55,7 @@ import com.datatorrent.stram.StramLocalCluster;
  * A bunch of test to verify the input operator will be automatically partitioned per kafka partition This test is launching its
  * own Kafka cluster.
  */
-@Ignore
+//@Ignore
 @RunWith(Parameterized.class)
 public class KafkaInputOperatorTest extends KafkaOperatorTestBase
 {
@@ -250,9 +250,9 @@ public class KafkaInputOperatorTest extends KafkaOperatorTestBase
     KafkaSinglePortInputOperator node = dag.addOperator("Kafka input", KafkaSinglePortInputOperator.class);
     node.setInitialPartitionCount(1);
     // set topic
-    node.setTopics(testName);
+    node.setTopicsDelimited(testName);
     node.setInitialOffset(AbstractKafkaInputOperator.InitialOffset.EARLIEST.name());
-    node.setClusters(getClusterConfig());
+    node.setClustersDelimited(getClusterConfig());
     node.setStrategy(partition);
     if(idempotent) {
       node.setWindowDataManager(new WindowDataManager.FSWindowDataManager());
