@@ -416,10 +416,10 @@ public abstract class AbstractKafkaInputOperator implements InputOperator, Opera
     return initialPartitionCount;
   }
 
-  public void setClustersDelimited(String clusters)
+  public void setClustersDelimited(String clustersDelimited)
   {
-    this.clustersDelimited = clusters;
-    this.clusters = clusters.split(";");
+    this.clustersDelimited = clustersDelimited;
+    this.clusters = clustersDelimited.split(";");
   }
 
   /**
@@ -427,9 +427,9 @@ public abstract class AbstractKafkaInputOperator implements InputOperator, Opera
    *  refer to http://kafka.apache.org/documentation.html#newconsumerconfigs
    *  To support multi cluster, you can have multiple bootstrap.servers separated by ";"
    */
-  public String getClusters()
+  public String getClustersDelimited()
   {
-    return Joiner.on(';').join(clusters);
+    return clustersDelimited;
   }
 
   public void setTopicsDelimited(String topicsDelimited)
@@ -442,9 +442,9 @@ public abstract class AbstractKafkaInputOperator implements InputOperator, Opera
    * The topics the operator consumes, separate by','
    * Topic name can only contain ASCII alphanumerics, '.', '_' and '-'
    */
-  public String getTopics()
+  public String getTopicsDelimited()
   {
-    return Joiner.on(", ").join(topics);
+    return topicsDelimited;
   }
 
   public void setStrategy(String policy)
