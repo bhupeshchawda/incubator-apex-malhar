@@ -217,6 +217,65 @@ public class TransformOperator extends BaseOperator implements Operator.Activati
   }
 
   /**
+   * Returns expression to be evaluated for given output field.
+   * This method is meant to be used for properties.xml file where map should be set using BeanUtils constructs.
+   *
+   * @param field Field for which expression needs to be evaluated.
+   * @return Expression that will be evaluated for given field.
+   * @omitFromUI
+   */
+  public String getExpressionMapStr(String field)
+  {
+    return (this.expressionMap != null) ? this.expressionMap.get(field) : null;
+  }
+
+  /**
+   * Set expression for given field.
+   * This is a mandatory property.
+   * This method is meant to be used for properties.xml file where map should be set using BeanUtils constructs.
+   *
+   * @param field Output field for which expression should be set.
+   * @param expression Expression that should be evaluated for given output field.
+   * @omitFromUI
+   */
+  public void setExpressionMapStr(String field, String expression)
+  {
+    if (this.expressionMap == null) {
+      this.expressionMap = new HashMap<>();
+    }
+    this.expressionMap.put(field, expression);
+  }
+
+  /**
+   * Return expression function for given index.
+   * This method is meant to be used for setting indexed property using BeanUtils constructs.
+   *
+   * @param index Index at which expression function should be returned.
+   * @return Qualified Expression function at given index.
+   * @omitFromUI
+   */
+  public String getExpressionFunctionsStr(int index)
+  {
+    return (index < this.expressionFunctions.size()) ? this.expressionFunctions.get(index) : null;
+  }
+
+  /**
+   * Sets expression function are given index.
+   * This method is meant to be used for setting indexed property using BeanUtils constructs.
+   *
+   * @param index Index at which expression should be set.
+   * @param expressionFunction Qualified expression function that should be made available to expression.
+   * @omitFromUI
+   */
+  public void setExpressionFunctionsStr(int index, String expressionFunction)
+  {
+    for (int i = this.expressionFunctions.size(); i <= index; i++) {
+      this.expressionFunctions.add(null);
+    }
+    this.expressionFunctions.set(index, expressionFunction);
+  }
+
+  /**
    * Tells whether the matching (by name and by type) fields between input and output should be copied as is.
    *
    * @return Tells whether the matching (by name and by type) fields between input and output should be copied as is.
