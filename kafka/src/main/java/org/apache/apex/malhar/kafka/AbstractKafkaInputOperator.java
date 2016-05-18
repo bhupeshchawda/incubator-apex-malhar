@@ -88,10 +88,10 @@ public abstract class AbstractKafkaInputOperator implements InputOperator, Opera
   }
 
   @NotNull
-  private String[] clusters;
+  private List<String> clusters;
 
   @NotNull
-  private String[] topics;
+  private List<String> topics;
 
   /**
    *  offset track for checkpoint
@@ -413,9 +413,9 @@ public abstract class AbstractKafkaInputOperator implements InputOperator, Opera
     return initialPartitionCount;
   }
 
-  public void setClusters(String clusters)
+  public void setClusters(List<String> clusters)
   {
-    this.clusters = clusters.split(";");
+    this.clusters = clusters;
   }
 
   /**
@@ -423,23 +423,23 @@ public abstract class AbstractKafkaInputOperator implements InputOperator, Opera
    *  refer to http://kafka.apache.org/documentation.html#newconsumerconfigs
    *  To support multi cluster, you can have multiple bootstrap.servers separated by ";"
    */
-  public String getClusters()
+  public List<String> getClusters()
   {
-    return Joiner.on(';').join(clusters);
+    return clusters;
   }
 
-  public void setTopics(String topics)
+  public void setTopics(List<String> topics)
   {
-    this.topics = Iterables.toArray(Splitter.on(',').trimResults().omitEmptyStrings().split(topics), String.class);
+    this.topics = topics;
   }
 
   /**
    * The topics the operator consumes, separate by','
    * Topic name can only contain ASCII alphanumerics, '.', '_' and '-'
    */
-  public String getTopics()
+  public List<String> getTopics()
   {
-    return Joiner.on(", ").join(topics);
+    return topics;
   }
 
   public void setStrategy(String policy)

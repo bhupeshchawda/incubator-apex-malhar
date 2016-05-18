@@ -19,6 +19,7 @@
 package org.apache.apex.malhar.kafka;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -250,7 +251,9 @@ public class KafkaInputOperatorTest extends KafkaOperatorTestBase
     KafkaSinglePortInputOperator node = dag.addOperator("Kafka input", KafkaSinglePortInputOperator.class);
     node.setInitialPartitionCount(1);
     // set topic
-    node.setTopics(testName);
+    List<String> topics = new ArrayList<>();
+    topics.add(testName);
+    node.setTopics(topics);
     node.setInitialOffset(AbstractKafkaInputOperator.InitialOffset.EARLIEST.name());
     node.setClusters(getClusterConfig());
     node.setStrategy(partition);
@@ -306,12 +309,13 @@ public class KafkaInputOperatorTest extends KafkaOperatorTestBase
     operator.setMaxTuplesPerWindow(500);
   }
 
-  private String getClusterConfig() {
+  private List<String> getClusterConfig() {
     String l = "localhost:";
-    return l + TEST_KAFKA_BROKER_PORT[0][0] +
+    String retVal = l + TEST_KAFKA_BROKER_PORT[0][0] +
       (hasMultiPartition ? "," + l + TEST_KAFKA_BROKER_PORT[0][1] : "") +
       (hasMultiCluster ? ";" + l + TEST_KAFKA_BROKER_PORT[1][0] : "") +
       (hasMultiCluster && hasMultiPartition ? "," + l  + TEST_KAFKA_BROKER_PORT[1][1] : "");
+    return Arrays.asList(retVal.split(";"));
   }
 
 
