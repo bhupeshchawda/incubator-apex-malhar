@@ -104,6 +104,7 @@ public class FileSplitterInputTest
       }
 
       fileSplitterInput = new FileSplitterInput();
+      fileSplitterInput.setBlocksThreshold(100);
       scanner = new MockScanner();
       fileSplitterInput.setScanner(scanner);
       fileSplitterInput.getScanner().setScanIntervalMillis(500);
@@ -145,6 +146,38 @@ public class FileSplitterInputTest
     testMeta.fileSplitterInput.emitTuples();
     testMeta.fileSplitterInput.endWindow();
     Assert.assertEquals("File metadata", 12, testMeta.fileMetadataSink.collectedTuples.size());
+    for (Object fileMetadata : testMeta.fileMetadataSink.collectedTuples) {
+      FileSplitterInput.FileMetadata metadata = (FileSplitterInput.FileMetadata)fileMetadata;
+      Assert.assertTrue("path: " + metadata.getFilePath(), testMeta.filePaths.contains(metadata.getFilePath()));
+      Assert.assertNotNull("name: ", metadata.getFileName());
+    }
+
+    testMeta.fileMetadataSink.collectedTuples.clear();
+  }
+
+  @Test
+  public void testScannerFilterForDuplicates() throws InterruptedException
+  {
+    String filePath = testMeta.dataDirectory + Path.SEPARATOR + "file0.txt";
+    testMeta.scanner = new MockScanner();
+    testMeta.fileSplitterInput.setScanner(testMeta.scanner);
+    testMeta.fileSplitterInput.getScanner().setScanIntervalMillis(500);
+    testMeta.fileSplitterInput.getScanner().setFilePatternRegularExp(".*[.]txt");
+    testMeta.fileSplitterInput.getScanner().setFiles(filePath);
+    testMeta.fileSplitterInput.setup(testMeta.context);
+    testMeta.fileSplitterInput.beginWindow(1);
+    testMeta.scanner.semaphore.acquire();
+
+    testMeta.fileSplitterInput.emitTuples();
+    testMeta.fileSplitterInput.endWindow();
+
+    testMeta.fileSplitterInput.beginWindow(2);
+    testMeta.scanner.semaphore.release();
+    testMeta.scanner.semaphore.acquire();
+    testMeta.fileSplitterInput.emitTuples();
+    testMeta.fileSplitterInput.endWindow();
+
+    Assert.assertEquals("File metadata", 1, testMeta.fileMetadataSink.collectedTuples.size());
     for (Object fileMetadata : testMeta.fileMetadataSink.collectedTuples) {
       FileSplitterInput.FileMetadata metadata = (FileSplitterInput.FileMetadata)fileMetadata;
       Assert.assertTrue("path: " + metadata.getFilePath(), testMeta.filePaths.contains(metadata.getFilePath()));

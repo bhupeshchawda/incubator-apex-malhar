@@ -23,24 +23,27 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
+import javax.validation.constraints.NotNull;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datatorrent.api.AutoMetric;
-import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.StreamCodec;
+import com.datatorrent.lib.converter.Converter;
 import com.datatorrent.lib.io.fs.AbstractSingleFileOutputOperator;
 import com.datatorrent.netlet.util.DTThrowable;
 
 /**
  * This class is responsible for writing tuples to HDFS. All tuples are written
  * to the same file. Rolling file based on size, no. of tuples, idle windows,
- * elapsed windows is supported.
+ * elapsed windows is supported. The user can configure how tuples are written
+ * to the file through the converter property.
  *
  * @since 3.4.0
  */
-
-public class BytesFileOutputOperator extends AbstractSingleFileOutputOperator<byte[]>
+@org.apache.hadoop.classification.InterfaceStability.Evolving
+public class GenericFileOutputOperator<INPUT> extends AbstractSingleFileOutputOperator<INPUT>
 {
 
   /**
@@ -81,6 +84,12 @@ public class BytesFileOutputOperator extends AbstractSingleFileOutputOperator<by
   private long currentPartIdleWindows;
 
   /**
+   * Converter for conversion of input tuples to byte[]
+   */
+  @NotNull
+  private Converter<INPUT, byte[]> converter;
+
+  /**
    * Max number of idle windows for which no new data is added to current part
    * file. Part file will be finalized after these many idle windows after last
    * new data.
@@ -100,13 +109,13 @@ public class BytesFileOutputOperator extends AbstractSingleFileOutputOperator<by
   /**
    * Default value for rotation windows
    */
-  private static final int DEFAULT_ROTATION_WINDOWS = 2 * 60 * 10; //10 min  
+  private static final int DEFAULT_ROTATION_WINDOWS = 2 * 60 * 10; //10 min
 
   /**
    * Initializing default values for tuple separator, stream expiry, rotation
    * windows
    */
-  public BytesFileOutputOperator()
+  public GenericFileOutputOperator()
   {
     setTupleSeparator(System.getProperty("line.separator"));
     setExpireStreamAfterAccessMillis(DEFAULT_STREAM_EXPIRY_ACCESS_MILL);
@@ -114,41 +123,19 @@ public class BytesFileOutputOperator extends AbstractSingleFileOutputOperator<by
   }
 
   /**
-   * Input port for receiving string tuples.
-   */
-  public final transient DefaultInputPort<String> stringInput = new DefaultInputPort<String>()
-  {
-    @Override
-    public void process(String tuple)
-    {
-      processTuple(tuple.getBytes());
-    }
-
-    @Override
-    public StreamCodec<String> getStreamCodec()
-    {
-      if (BytesFileOutputOperator.this.stringStreamCodec == null) {
-        return super.getStreamCodec();
-      } else {
-        return stringStreamCodec;
-      }
-    }
-  };
-
-  /**
    * {@inheritDoc}
-   * 
+   *
    * @return byte[] representation of the given tuple. if input tuple is of type
    *         byte[] then it is returned as it is. for any other type toString()
    *         representation is used to generate byte[].
    */
   @Override
-  protected byte[] getBytesForTuple(byte[] tuple)
+  protected byte[] getBytesForTuple(INPUT tuple)
   {
     ByteArrayOutputStream bytesOutStream = new ByteArrayOutputStream();
 
     try {
-      bytesOutStream.write(tuple);
+      bytesOutStream.write(converter.convert(tuple));
       bytesOutStream.write(tupleSeparatorBytes);
       byteCount += bytesOutStream.size();
       return bytesOutStream.toByteArray();
@@ -178,7 +165,7 @@ public class BytesFileOutputOperator extends AbstractSingleFileOutputOperator<by
    * {@inheritDoc} Does additional state maintenance for rollover
    */
   @Override
-  protected void processTuple(byte[] tuple)
+  protected void processTuple(INPUT tuple)
   {
     super.processTuple(tuple);
     isNewDataInCurrentWindow = true;
@@ -221,7 +208,7 @@ public class BytesFileOutputOperator extends AbstractSingleFileOutputOperator<by
 
   /**
    * {@inheritDoc} Handles file rotation along with exception handling
-   * 
+   *
    * @param lastFile
    */
   protected void rotateCall(String lastFile)
@@ -238,7 +225,6 @@ public class BytesFileOutputOperator extends AbstractSingleFileOutputOperator<by
       DTThrowable.rethrow(ex);
     }
   }
-
 
   /**
    * @return Separator between the tuples
@@ -284,12 +270,72 @@ public class BytesFileOutputOperator extends AbstractSingleFileOutputOperator<by
   }
 
   /**
-   * @param maxIdleWindows max number of idle windows for rollover
+   * @param maxIdleWindows
+   *          max number of idle windows for rollover
    */
   public void setMaxIdleWindows(long maxIdleWindows)
   {
     this.maxIdleWindows = maxIdleWindows;
   }
 
-  private static final Logger LOG = LoggerFactory.getLogger(BytesFileOutputOperator.class);
+  /**
+   * Converter for conversion of input tuples to byte[]
+   * @return converter
+   */
+  public Converter<INPUT, byte[]> getConverter()
+  {
+    return converter;
+  }
+
+  /**
+   * Converter for conversion of input tuples to byte[]
+   * @param converter
+   */
+  public void setConverter(Converter<INPUT, byte[]> converter)
+  {
+    this.converter = converter;
+  }
+
+  /**
+   * Converter returning input tuples as byte[] without any conversion
+   */
+  public static class NoOpConverter implements Converter<byte[], byte[]>
+  {
+    @Override
+    public byte[] convert(byte[] tuple)
+    {
+      return tuple;
+    }
+  }
+
+  public static class BytesFileOutputOperator extends GenericFileOutputOperator<byte[]>
+  {
+
+    public BytesFileOutputOperator()
+    {
+      setConverter(new NoOpConverter());
+    }
+  }
+
+  /**
+   * Converter returning byte[] conversion of the input String.
+   */
+  public static class StringToBytesConverter implements Converter<String, byte[]>
+  {
+    @Override
+    public byte[] convert(String tuple)
+    {
+      return tuple.getBytes();
+    }
+  }
+
+  public static class StringFileOutputOperator extends GenericFileOutputOperator<String>
+  {
+    public StringFileOutputOperator()
+    {
+      setConverter(new StringToBytesConverter());
+    }
+  }
+
+  private static final Logger LOG = LoggerFactory.getLogger(GenericFileOutputOperator.class);
 }

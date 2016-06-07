@@ -116,7 +116,7 @@
               <dependency>
                 <groupId>org.apache.apex</groupId>
                 <artifactId>${project.artifactId}</artifactId>
-                <version>3.3.0-incubating</version>
+                <version>3.4.0</version>
               </dependency>
             </oldVersion>
             <newVersion>
@@ -134,11 +134,7 @@
               <excludes>
                 <exclude>@org.apache.hadoop.classification.InterfaceStability$Evolving</exclude>
                 <exclude>@org.apache.hadoop.classification.InterfaceStability$Unstable</exclude>
-                <exclude>com.datatorrent.lib.io.WebSocketInputOperator</exclude>
-                <exclude>com.datatorrent.lib.io.WebSocketOutputOperator</exclude>
-                <exclude>*#idempotentStorageManager</exclude>
-                <exclude>*#setIdempotentStorageManager(com.datatorrent.lib.io.IdempotentStorageManager)</exclude>
-                <exclude>*#getIdempotentStorageManager()</exclude>
+                <exclude>org.apache.apex.malhar.lib.fs.BytesFileOutputOperator</exclude>
               </excludes>
             </parameter>
             <skip>${semver.plugin.skip}</skip>
@@ -202,6 +198,7 @@
       <id>all-modules</id>
       <modules>
         <module>kafka</module>
+        <module>hive</module>
         <module>stream</module>
         <module>benchmark</module>
         <module>apps</module>
