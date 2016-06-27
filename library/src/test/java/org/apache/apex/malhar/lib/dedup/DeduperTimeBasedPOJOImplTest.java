@@ -154,6 +154,5 @@ public class DeduperTimeBasedPOJOImplTest
     {
       this.date = date;
     }
-    
   }
 }
