@@ -23,8 +23,10 @@ import java.util.Date;
 
 import org.joda.time.Duration;
 import org.joda.time.Instant;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.apache.apex.malhar.lib.state.managed.TimeBucketAssigner;
@@ -78,7 +80,6 @@ public class DeduperTimeBasedPOJOImplTest
     deduper.setup(context);
     deduper.input.setup(new PortContext(attributes, context));
     deduper.activate(context);
-
     CollectorTestSink<TestPojo> uniqueSink = new CollectorTestSink<TestPojo>();
     TestUtils.setSink(deduper.output, uniqueSink);
     CollectorTestSink<TestPojo> duplicateSink = new CollectorTestSink<TestPojo>();
@@ -108,6 +109,69 @@ public class DeduperTimeBasedPOJOImplTest
     deduper.teardown();
   }
 
+  @Test
+  public void testOrdering() throws InterruptedException
+  {
+    com.datatorrent.api.Attribute.AttributeMap.DefaultAttributeMap attributes =
+        new com.datatorrent.api.Attribute.AttributeMap.DefaultAttributeMap();
+    attributes.put(DAG.APPLICATION_ID, APP_ID);
+    attributes.put(DAG.APPLICATION_PATH, applicationPath);
+    attributes.put(DAG.InputPortMeta.TUPLE_CLASS, TestPojo.class);
+    attributes.put(DAG.CHECKPOINT_WINDOW_COUNT, 1);
+    OperatorContext context = new OperatorContextTestHelper.TestIdOperatorContext(OPERATOR_ID, attributes);
+    deduper.setOrderedOutput(false);
+
+    deduper.setup(context);
+    deduper.input.setup(new PortContext(attributes, context));
+    deduper.activate(context);
+    CollectorTestSink<TestPojo> uniqueSink = new CollectorTestSink<TestPojo>();
+    TestUtils.setSink(deduper.output, uniqueSink);
+    CollectorTestSink<TestPojo> duplicateSink = new CollectorTestSink<TestPojo>();
+    TestUtils.setSink(deduper.duplicates, duplicateSink);
+    CollectorTestSink<TestPojo> expiredSink = new CollectorTestSink<TestPojo>();
+    TestUtils.setSink(deduper.expired, expiredSink);
+
+    long millis = System.currentTimeMillis();
+    long count = 0;
+
+    deduper.beginWindow(0);
+    TestPojo pojo = new TestPojo(1, new Date(millis + 1), count++);
+    deduper.input.process(pojo);
+    Thread.sleep(10);
+    pojo = new TestPojo(1, new Date(millis + 1), count++);
+    deduper.input.process(pojo);
+    deduper.handleIdleTime();
+    deduper.endWindow();
+
+//    deduper.beginWindow(1);
+//    for (int k = 8; k < 19; k++) {
+//      TestPojo pojo = new TestPojo(k, new Date(millis + k), count++);
+//      deduper.input.process(pojo);
+//    }
+//    deduper.handleIdleTime();
+//    deduper.endWindow();
+//
+//    deduper.beginWindow(2);
+//    for (int k = 15; k < 25; k++) {
+//      TestPojo pojo = new TestPojo(k, new Date(millis + k), count++);
+//      deduper.input.process(pojo);
+//    }
+//    deduper.handleIdleTime();
+//    deduper.endWindow();
+
+    System.out.println(uniqueSink.collectedTuples.size());
+    System.out.println(duplicateSink.collectedTuples.size());
+    System.out.println(expiredSink.collectedTuples.size());
+    System.out.println(uniqueSink.collectedTuples);
+    System.out.println(duplicateSink.collectedTuples);
+    System.out.println(expiredSink.collectedTuples);
+    Assert.assertTrue(uniqueSink.collectedTuples.size() == 200);
+    Assert.assertTrue(duplicateSink.collectedTuples.size() == 10);
+    Assert.assertTrue(expiredSink.collectedTuples.size() == 1);
+
+    deduper.teardown();
+  }
+
   @AfterClass
   public static void teardown()
   {
@@ -124,6 +188,7 @@ public class DeduperTimeBasedPOJOImplTest
   {
     private long key;
     private Date date;
+    public long sequence;
 
     public TestPojo()
     {
@@ -133,6 +198,13 @@ public class DeduperTimeBasedPOJOImplTest
     {
       this.key = key;
       this.date = date;
+    }
+
+    public TestPojo(long key, Date date, long sequence)
+    {
+      this.key = key;
+      this.date = date;
+      this.sequence = sequence;
     }
 
     public long getKey()
@@ -154,5 +226,12 @@ public class DeduperTimeBasedPOJOImplTest
     {
       this.date = date;
     }
+
+    @Override
+    public String toString()
+    {
+      return "TestPojo [key=" + key + ", sequence=" + sequence + "]";
+    }
+
   }
 }

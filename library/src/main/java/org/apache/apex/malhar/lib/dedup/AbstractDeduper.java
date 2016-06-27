@@ -330,6 +330,9 @@ public abstract class AbstractDeduper<T>
   public void endWindow()
   {
     processAuxiliary(true);
+    if (orderedOutput) {
+      emitProcessedTuples();
+    }
     Preconditions.checkArgument(waitingEvents.isEmpty());
     managedState.endWindow();
   }
