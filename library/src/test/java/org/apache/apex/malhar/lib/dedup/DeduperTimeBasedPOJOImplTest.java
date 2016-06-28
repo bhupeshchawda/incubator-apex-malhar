@@ -20,13 +20,12 @@ package org.apache.apex.malhar.lib.dedup;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.Random;
 
 import org.joda.time.Duration;
 import org.joda.time.Instant;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.apache.apex.malhar.lib.state.managed.TimeBucketAssigner;
@@ -117,7 +116,6 @@ public class DeduperTimeBasedPOJOImplTest
     attributes.put(DAG.APPLICATION_ID, APP_ID);
     attributes.put(DAG.APPLICATION_PATH, applicationPath);
     attributes.put(DAG.InputPortMeta.TUPLE_CLASS, TestPojo.class);
-    attributes.put(DAG.CHECKPOINT_WINDOW_COUNT, 1);
     OperatorContext context = new OperatorContextTestHelper.TestIdOperatorContext(OPERATOR_ID, attributes);
     deduper.setOrderedOutput(false);
 
@@ -134,37 +132,17 @@ public class DeduperTimeBasedPOJOImplTest
     long millis = System.currentTimeMillis();
     long count = 0;
 
+    Random r = new Random();
     deduper.beginWindow(0);
-    TestPojo pojo = new TestPojo(1, new Date(millis + 1), count++);
-    deduper.input.process(pojo);
-    Thread.sleep(10);
-    pojo = new TestPojo(1, new Date(millis + 1), count++);
-    deduper.input.process(pojo);
+    for (int i = 1; i <= 1000000; i++) {
+      int x = r.nextInt(1000000);
+      TestPojo pojo = new TestPojo(x, new Date(millis + x), count++);
+      deduper.input.process(pojo);
+    }
+
     deduper.handleIdleTime();
     deduper.endWindow();
 
-//    deduper.beginWindow(1);
-//    for (int k = 8; k < 19; k++) {
-//      TestPojo pojo = new TestPojo(k, new Date(millis + k), count++);
-//      deduper.input.process(pojo);
-//    }
-//    deduper.handleIdleTime();
-//    deduper.endWindow();
-//
-//    deduper.beginWindow(2);
-//    for (int k = 15; k < 25; k++) {
-//      TestPojo pojo = new TestPojo(k, new Date(millis + k), count++);
-//      deduper.input.process(pojo);
-//    }
-//    deduper.handleIdleTime();
-//    deduper.endWindow();
-
-    System.out.println(uniqueSink.collectedTuples.size());
-    System.out.println(duplicateSink.collectedTuples.size());
-    System.out.println(expiredSink.collectedTuples.size());
-    System.out.println(uniqueSink.collectedTuples);
-    System.out.println(duplicateSink.collectedTuples);
-    System.out.println(expiredSink.collectedTuples);
     Assert.assertTrue(uniqueSink.collectedTuples.size() == 200);
     Assert.assertTrue(duplicateSink.collectedTuples.size() == 10);
     Assert.assertTrue(expiredSink.collectedTuples.size() == 1);
@@ -182,56 +160,5 @@ public class DeduperTimeBasedPOJOImplTest
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  public static class TestPojo
-  {
-    private long key;
-    private Date date;
-    public long sequence;
-
-    public TestPojo()
-    {
-    }
-
-    public TestPojo(long key, Date date)
-    {
-      this.key = key;
-      this.date = date;
-    }
-
-    public TestPojo(long key, Date date, long sequence)
-    {
-      this.key = key;
-      this.date = date;
-      this.sequence = sequence;
-    }
-
-    public long getKey()
-    {
-      return key;
-    }
-
-    public Date getDate()
-    {
-      return date;
-    }
-
-    public void setKey(long key)
-    {
-      this.key = key;
-    }
-
-    public void setDate(Date date)
-    {
-      this.date = date;
-    }
-
-    @Override
-    public String toString()
-    {
-      return "TestPojo [key=" + key + ", sequence=" + sequence + "]";
-    }
-
   }
 }

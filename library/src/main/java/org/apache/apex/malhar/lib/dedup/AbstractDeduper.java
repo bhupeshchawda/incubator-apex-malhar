@@ -41,12 +41,15 @@ import com.google.common.util.concurrent.Futures;
 import com.datatorrent.api.AutoMetric;
 import com.datatorrent.api.Context;
 import com.datatorrent.api.Context.OperatorContext;
+import com.datatorrent.api.DAG;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.Operator;
 import com.datatorrent.api.Operator.ActivationListener;
 import com.datatorrent.api.annotation.OperatorAnnotation;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
+import com.datatorrent.lib.fileaccess.FileAccessFSImpl;
+import com.datatorrent.lib.fileaccess.TFileImpl;
 import com.datatorrent.netlet.util.Slice;
 
 /**
@@ -119,6 +122,9 @@ public abstract class AbstractDeduper<T>
   public void setup(OperatorContext context)
   {
     sleepMillis = context.getValue(Context.OperatorContext.SPIN_MILLIS);
+    FileAccessFSImpl fAccessImpl = new TFileImpl.DTFileImpl();
+    fAccessImpl.setBasePath(context.getValue(DAG.APPLICATION_PATH) + "/bucket_data");
+    managedState.setFileAccess(fAccessImpl);
     managedState.setup(context);
 
     if (orderedOutput) {
@@ -438,6 +444,11 @@ public abstract class AbstractDeduper<T>
   public void setOrderedOutput(boolean orderedOutput)
   {
     this.orderedOutput = orderedOutput;
+  }
+
+  public ManagedTimeUnifiedStateImpl getManagedState()
+  {
+    return managedState;
   }
 
   /**

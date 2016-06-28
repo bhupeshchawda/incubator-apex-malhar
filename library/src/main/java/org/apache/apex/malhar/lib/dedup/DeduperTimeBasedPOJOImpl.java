@@ -20,7 +20,13 @@ package org.apache.apex.malhar.lib.dedup;
 
 import javax.validation.constraints.NotNull;
 
+import org.joda.time.Duration;
+import org.joda.time.Instant;
+
+import org.apache.apex.malhar.lib.state.managed.TimeBucketAssigner;
+
 import com.datatorrent.api.Context;
+import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.Context.PortContext;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.Operator.ActivationListener;
@@ -40,6 +46,12 @@ public class DeduperTimeBasedPOJOImpl extends AbstractDeduper<Object> implements
 
   @NotNull
   private boolean useSystemTime = true;
+
+  private long bucketSpan;
+
+  private long expireBefore;
+
+  private long referenceInstant;
 
   private transient Class<?> pojoClass;
 
@@ -74,6 +86,17 @@ public class DeduperTimeBasedPOJOImpl extends AbstractDeduper<Object> implements
   {
     Object key = keyGetter.get(tuple);
     return new Slice(key.toString().getBytes());
+  }
+
+  @Override
+  public void setup(OperatorContext context)
+  {
+    TimeBucketAssigner tba = new TimeBucketAssigner();
+    tba.setBucketSpan(Duration.standardSeconds(bucketSpan));
+    tba.setExpireBefore(Duration.standardSeconds(expireBefore));
+    tba.setReferenceInstant(new Instant(referenceInstant));
+    managedState.setTimeBucketAssigner(tba);
+    super.setup(context);
   }
 
   @Override
@@ -116,6 +139,36 @@ public class DeduperTimeBasedPOJOImpl extends AbstractDeduper<Object> implements
   public void setUseSystemTime(boolean useSystemTime)
   {
     this.useSystemTime = useSystemTime;
+  }
+
+  public long getBucketSpan()
+  {
+    return bucketSpan;
+  }
+
+  public void setBucketSpan(long bucketSpan)
+  {
+    this.bucketSpan = bucketSpan;
+  }
+
+  public long getExpireBefore()
+  {
+    return expireBefore;
+  }
+
+  public void setExpireBefore(long expireBefore)
+  {
+    this.expireBefore = expireBefore;
+  }
+
+  public long getReferenceInstant()
+  {
+    return referenceInstant;
+  }
+
+  public void setReferenceInstant(long referenceInstant)
+  {
+    this.referenceInstant = referenceInstant;
   }
 
 }
