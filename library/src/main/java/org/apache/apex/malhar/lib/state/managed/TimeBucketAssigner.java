@@ -83,6 +83,8 @@ public class TimeBucketAssigner implements ManagedStateComponent
 
   private boolean initialized;
 
+  private boolean autoExpiry = true;
+
   private transient WindowBoundedService windowBoundedService;
 
   private transient PurgeListener purgeListener = null;
@@ -123,7 +125,9 @@ public class TimeBucketAssigner implements ManagedStateComponent
       initialized = true;
     }
     lowestTimeBucket = (start - fixedStart) / bucketSpanMillis;
-    windowBoundedService = new WindowBoundedService(bucketSpanMillis, expiryTask);
+    if (autoExpiry) {
+      windowBoundedService = new WindowBoundedService(bucketSpanMillis, expiryTask);
+    }
     windowBoundedService.setup(context);
   }
 
@@ -230,6 +234,23 @@ public class TimeBucketAssigner implements ManagedStateComponent
   public void setBucketSpan(Duration bucketSpan)
   {
     this.bucketSpan = bucketSpan;
+  }
+
+  /**
+   * @return whether to advance bucket boundaries automatically based on System time
+   */
+  public boolean isAutoExpiry()
+  {
+    return autoExpiry;
+  }
+
+  /**
+   * Sets whether or not to advance bucket boundaries automatically based on System time
+   * @param autoExpiry
+   */
+  public void setAutoExpiry(boolean autoExpiry)
+  {
+    this.autoExpiry = autoExpiry;
   }
 
   /**
