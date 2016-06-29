@@ -95,8 +95,13 @@ public class TimeBucketAssigner implements ManagedStateComponent
     public void run()
     {
       synchronized (lock) {
-        start += bucketSpanMillis;
-        end += bucketSpanMillis;
+        if (autoExpiry) {
+          start += bucketSpanMillis;
+          end += bucketSpanMillis;
+          lowestTimeBucket++;
+        } else {
+          lowestTimeBucket = (start - fixedStart) / bucketSpanMillis;
+        }
         if (purgeListener != null) {
           purgeListener.purgeTimeBucketsLessThanEqualTo(lowestTimeBucket++);
         }
@@ -125,9 +130,7 @@ public class TimeBucketAssigner implements ManagedStateComponent
       initialized = true;
     }
     lowestTimeBucket = (start - fixedStart) / bucketSpanMillis;
-    if (autoExpiry) {
-      windowBoundedService = new WindowBoundedService(bucketSpanMillis, expiryTask);
-    }
+    windowBoundedService = new WindowBoundedService(bucketSpanMillis, expiryTask);
     windowBoundedService.setup(context);
   }
 
