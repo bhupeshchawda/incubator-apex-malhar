@@ -4,43 +4,61 @@ import java.util.Date;
 
 public class TestPojo
 {
-  int id;
-  Date time;
+  private long key;
+  private Date date;
+  public long sequence;
 
   public TestPojo()
   {
   }
 
-  public TestPojo(int id, Date d)
+  public TestPojo(long key, Date date)
   {
-    this.id = id;
-    this.time = d;
+    this.key = key;
+    this.date = date;
   }
 
-  public int getId()
+  public TestPojo(long key, Date date, long sequence)
   {
-    return id;
+    this.key = key;
+    this.date = date;
+    this.sequence = sequence;
   }
 
-  public void setId(int id)
+  public long getKey()
   {
-    this.id = id;
+    return key;
   }
 
-  public Date getTime()
+  public Date getDate()
   {
-    return time;
+    return date;
   }
 
-  public void setTime(Date time)
+  public void setKey(long key)
   {
-    this.time = time;
+    this.key = key;
+  }
+
+  public void setDate(Date date)
+  {
+    this.date = date;
+  }
+
+  public long getSequence()
+  {
+    return sequence;
+  }
+
+  public void setSequence(long sequence)
+  {
+    this.sequence = sequence;
   }
 
   @Override
   public String toString()
   {
-    return "TestPojo [id=" + id + ", time=" + time + "]";
+    return "TestPojo [key=" + key + ", date=" + date + ", sequence=" + sequence + "]";
   }
 
 }
