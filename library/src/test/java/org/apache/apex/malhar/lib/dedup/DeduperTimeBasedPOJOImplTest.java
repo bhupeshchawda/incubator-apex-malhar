@@ -20,15 +20,11 @@ package org.apache.apex.malhar.lib.dedup;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.Random;
 
-import org.joda.time.Duration;
-import org.joda.time.Instant;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.apache.apex.malhar.lib.state.managed.TimeBucketAssigner;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -45,8 +41,8 @@ import com.datatorrent.stram.engine.PortContext;
 public class DeduperTimeBasedPOJOImplTest
 {
   private static String applicationPath;
-  private static final String APPLICATION_PATH_PREFIX = "target/DeduperPOJOImplTest";
-  private static final String APP_ID = "DeduperPOJOImplTest";
+  private static final String APPLICATION_PATH_PREFIX = "target/DeduperTimeBasedPOJOImplTest";
+  private static final String APP_ID = "DeduperTimeBasedPOJOImplTest";
   private static final int OPERATOR_ID = 0;
   private static DeduperTimeBasedPOJOImpl deduper;
 
@@ -57,11 +53,9 @@ public class DeduperTimeBasedPOJOImplTest
     deduper = new DeduperTimeBasedPOJOImpl();
     deduper.setKeyExpression("{$.key}");
     deduper.setTimeExpression("{$.date.getTime()}");
-    TimeBucketAssigner tba = new TimeBucketAssigner();
-    tba.setBucketSpan(Duration.standardSeconds(10));
-    tba.setExpireBefore(Duration.standardSeconds(60));
-    tba.setReferenceInstant(new Instant(0));
-    deduper.managedState.setTimeBucketAssigner(tba);
+    deduper.setBucketSpan(10);
+    deduper.setExpireBefore(60);
+    deduper.setReferenceInstant(0);
     FileAccessFSImpl fAccessImpl = new TFileImpl.DTFileImpl();
     fAccessImpl.setBasePath(applicationPath + "/bucket_data");
     deduper.managedState.setFileAccess(fAccessImpl);
@@ -101,48 +95,6 @@ public class DeduperTimeBasedPOJOImplTest
     }
     deduper.handleIdleTime();
     deduper.endWindow();
-    Assert.assertTrue(uniqueSink.collectedTuples.size() == 200);
-    Assert.assertTrue(duplicateSink.collectedTuples.size() == 10);
-    Assert.assertTrue(expiredSink.collectedTuples.size() == 1);
-
-    deduper.teardown();
-  }
-
-  @Test
-  public void testOrdering() throws InterruptedException
-  {
-    com.datatorrent.api.Attribute.AttributeMap.DefaultAttributeMap attributes =
-        new com.datatorrent.api.Attribute.AttributeMap.DefaultAttributeMap();
-    attributes.put(DAG.APPLICATION_ID, APP_ID);
-    attributes.put(DAG.APPLICATION_PATH, applicationPath);
-    attributes.put(DAG.InputPortMeta.TUPLE_CLASS, TestPojo.class);
-    OperatorContext context = new OperatorContextTestHelper.TestIdOperatorContext(OPERATOR_ID, attributes);
-    deduper.setOrderedOutput(false);
-
-    deduper.setup(context);
-    deduper.input.setup(new PortContext(attributes, context));
-    deduper.activate(context);
-    CollectorTestSink<TestPojo> uniqueSink = new CollectorTestSink<TestPojo>();
-    TestUtils.setSink(deduper.output, uniqueSink);
-    CollectorTestSink<TestPojo> duplicateSink = new CollectorTestSink<TestPojo>();
-    TestUtils.setSink(deduper.duplicates, duplicateSink);
-    CollectorTestSink<TestPojo> expiredSink = new CollectorTestSink<TestPojo>();
-    TestUtils.setSink(deduper.expired, expiredSink);
-
-    long millis = System.currentTimeMillis();
-    long count = 0;
-
-    Random r = new Random();
-    deduper.beginWindow(0);
-    for (int i = 1; i <= 1000000; i++) {
-      int x = r.nextInt(1000000);
-      TestPojo pojo = new TestPojo(x, new Date(millis + x), count++);
-      deduper.input.process(pojo);
-    }
-
-    deduper.handleIdleTime();
-    deduper.endWindow();
-
     Assert.assertTrue(uniqueSink.collectedTuples.size() == 200);
     Assert.assertTrue(duplicateSink.collectedTuples.size() == 10);
     Assert.assertTrue(expiredSink.collectedTuples.size() == 1);
