@@ -59,7 +59,7 @@ import com.datatorrent.common.util.BaseOperator;
  * @param <AccumulationT> The type of the accumulation
  */
 @InterfaceStability.Evolving
-public abstract class AbstractWindowedOperator<InputT, OutputT, DataStorageT extends WindowedStorage, AccumulationT extends Accumulation>
+public abstract class AbstractWindowedOperator<InputT, OutputT, DataStorageT extends WindowedStorage, RetractionStorageT extends WindowedStorage, AccumulationT extends Accumulation>
     extends BaseOperator implements WindowedOperator<InputT>
 {
 
@@ -79,8 +79,9 @@ public abstract class AbstractWindowedOperator<InputT, OutputT, DataStorageT ext
   private long lateTriggerMillis;
   private long currentDerivedTimestamp = -1;
   private long windowWidthMillis;
+  private long fixedWatermarkMillis = -1;
   protected DataStorageT dataStorage;
-  protected DataStorageT retractionStorage;
+  protected RetractionStorageT retractionStorage;
   protected AccumulationT accumulation;
 
   private static final transient Logger LOG = LoggerFactory.getLogger(AbstractWindowedOperator.class);
@@ -207,7 +208,7 @@ public abstract class AbstractWindowedOperator<InputT, OutputT, DataStorageT ext
    *
    * @param storageAgent
    */
-  public void setRetractionStorage(DataStorageT storageAgent)
+  public void setRetractionStorage(RetractionStorageT storageAgent)
   {
     this.retractionStorage = storageAgent;
   }
@@ -233,6 +234,18 @@ public abstract class AbstractWindowedOperator<InputT, OutputT, DataStorageT ext
   public void setTimestampExtractor(Function<InputT, Long> timestampExtractor)
   {
     this.timestampExtractor = timestampExtractor;
+  }
+
+  /**
+   * Sets the fixed watermark with respect to the processing time derived from the Apex window ID. This is useful if we
+   * don't have watermark tuples from upstream. However, using this means whether a tuple is considered late totally
+   * depends on the Apex window ID of this operator.
+   *
+   * Note that setting this value will make incoming watermark tuples useless.
+   */
+  public void setFixedWatermark(long millis)
+  {
+    this.fixedWatermarkMillis = millis;
   }
 
   public void validate() throws ValidationException
@@ -265,6 +278,10 @@ public abstract class AbstractWindowedOperator<InputT, OutputT, DataStorageT ext
   @Override
   public Tuple.WindowedTuple<InputT> getWindowedValue(Tuple<InputT> input)
   {
+    if (windowOption == null && input instanceof Tuple.WindowedTuple) {
+      // inherit the windows from upstream
+      return (Tuple.WindowedTuple<InputT>)input;
+    }
     Tuple.WindowedTuple<InputT> windowedTuple = new Tuple.WindowedTuple<>();
     windowedTuple.setValue(input.getValue());
     windowedTuple.setTimestamp(extractTimestamp(input));
@@ -401,6 +418,9 @@ public abstract class AbstractWindowedOperator<InputT, OutputT, DataStorageT ext
 
   private void processWatermarkAtEndWindow()
   {
+    if (fixedWatermarkMillis > 0) {
+      watermarkTimestamp = currentDerivedTimestamp - fixedWatermarkMillis;
+    }
     if (watermarkTimestamp > 0) {
       this.currentWatermark = watermarkTimestamp;
 
