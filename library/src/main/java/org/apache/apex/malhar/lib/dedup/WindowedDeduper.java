@@ -1,51 +1,51 @@
 package org.apache.apex.malhar.lib.dedup;
 
-import org.apache.apex.malhar.lib.window.Accumulation;
-import org.apache.apex.malhar.lib.window.Tuple.WindowedTuple;
-import org.apache.apex.malhar.lib.window.impl.KeyedWindowedOperatorImpl;
+import org.apache.apex.malhar.lib.window.Tuple;
+import org.apache.apex.malhar.lib.window.Window;
+import org.apache.apex.malhar.lib.window.impl.WindowedOperatorImpl;
 
-import com.datatorrent.lib.util.KeyValPair;
+import com.datatorrent.api.DefaultOutputPort;
+import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 
-public class WindowedDeduper<T> extends KeyedWindowedOperatorImpl<Long, T, T, T>
+public class WindowedDeduper<T> extends WindowedOperatorImpl<T, T, T>
 {
+
+  /**
+   * The output port on which deduped events are emitted.
+   */
+  public final transient DefaultOutputPort<T> output = new DefaultOutputPort<T>();
+
+  /**
+   * The output port on which duplicate events are emitted.
+   */
+  @OutputPortFieldAnnotation(optional = true)
+  public final transient DefaultOutputPort<T> duplicates = new DefaultOutputPort<T>();
+
+  /**
+   * The output port on which expired events are emitted.
+   */
+  @OutputPortFieldAnnotation(optional = true)
+  public final transient DefaultOutputPort<T> expired = new DefaultOutputPort<T>();
+
   @Override
-  public void accumulateTuple(WindowedTuple<KeyValPair<Long, T>> tuple)
+  public void dropTuple(Tuple<T> input)
   {
-    super.accumulateTuple(tuple);
+    expired.emit(input.getValue());
   }
 
-  public static class DedupAccumulation<T> implements Accumulation<T, T, T>
+  @Override
+  public void accumulateTuple(Tuple.WindowedTuple<T> tuple)
   {
-
-    @Override
-    public T defaultAccumulatedValue()
-    {
-      return null;
+    for (Window window : tuple.getWindows()) {
+      // process each window
+      T accum = dataStorage.get(window);
+      if (accum == null) {
+        output.emit(tuple.getValue());
+        dataStorage.put(window, accumulation.accumulate(accum, tuple.getValue()));
+      } else {
+        duplicates.emit(tuple.getValue());
+      }
     }
-
-    @Override
-    public T accumulate(T accumulatedValue, T input)
-    {
-      return input;
-    }
-
-    @Override
-    public T merge(T accumulatedValue1, T accumulatedValue2)
-    {
-      throw new UnsupportedOperationException("Merge not supported for non-session windows");
-    }
-
-    @Override
-    public T getOutput(T accumulatedValue)
-    {
-      return accumulatedValue;
-    }
-
-    @Override
-    public T getRetraction(T accumulatedValue)
-    {
-      throw new UnsupportedOperationException("Retraction not needed for Dedup");
-    }
-    
   }
+
 }

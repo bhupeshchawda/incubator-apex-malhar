@@ -44,9 +44,6 @@ public class DeduperTimeBasedPOJOImpl extends AbstractDeduper<Object> implements
   @NotNull
   private String timeExpression;
 
-  @NotNull
-  private boolean useSystemTime = true;
-
   private long bucketSpan;
 
   private long expireBefore;
@@ -129,16 +126,6 @@ public class DeduperTimeBasedPOJOImpl extends AbstractDeduper<Object> implements
   public void setTimeExpression(String timeExpression)
   {
     this.timeExpression = timeExpression;
-  }
-
-  public boolean isUseSystemTime()
-  {
-    return useSystemTime;
-  }
-
-  public void setUseSystemTime(boolean useSystemTime)
-  {
-    this.useSystemTime = useSystemTime;
   }
 
   public long getBucketSpan()

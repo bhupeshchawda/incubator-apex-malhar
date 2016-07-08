@@ -33,24 +33,24 @@ public class WindowedDeduperTest
   public static void setup()
   {
     dedup = new WindowedDeduper<>();
-    Accumulation dedupAccum = new WindowedDeduper.DedupAccumulation<>();
+    Accumulation dedupAccum = new DedupAccumulation<>();
     dedup.setAccumulation(dedupAccum);
-    dedup.setDataStorage(new InMemoryWindowedKeyedStorage<Long, TestPojo>());
+    dedup.setDataStorage(new InMemoryWindowedStorage<TestPojo>());
     dedup.setWindowStateStorage(new InMemoryWindowedStorage<WindowState>());
     // Sliding windows: 1 minute. Slide by 10 seconds
     dedup.setWindowOption(new WindowOption.SlidingTimeWindows(Duration.standardMinutes(1), Duration.standardSeconds(10)));
-    dedup.setTriggerOption(TriggerOption.AtWatermark().withEarlyFiringsAtEvery(Duration.millis(1000)).accumulatingFiredPanes());
-
+    dedup.setTriggerOption(new TriggerOption().withEarlyFiringsAtEvery(Duration.millis(1000)).accumulatingFiredPanes());
   }
 
   @Test
-  public void testWindowedDedup()
+  public void testWindowedDedup() throws InterruptedException
   {
     com.datatorrent.api.Attribute.AttributeMap.DefaultAttributeMap attributes =
         new com.datatorrent.api.Attribute.AttributeMap.DefaultAttributeMap();
     attributes.put(DAG.APPLICATION_ID, APP_ID);
     attributes.put(DAG.APPLICATION_PATH, applicationPath);
     OperatorContext context = new OperatorContextTestHelper.TestIdOperatorContext(OPERATOR_ID, attributes);
+    dedup.setFixedWatermark(100);
     dedup.setup(context);
 
     CollectorTestSink<TestPojo> uniqueSink = new CollectorTestSink<TestPojo>();
@@ -59,22 +59,24 @@ public class WindowedDeduperTest
     dedup.beginWindow(0);
 
     long millis = System.currentTimeMillis();
+    Tuple.TimestampedTuple<TestPojo> tuple;
     for (int i = 0; i < 100; i++) {
       TestPojo pojo = new TestPojo(i, new Date(millis + i));
-      Tuple.TimestampedTuple<TestPojo> tuple = new TimestampedTuple<TestPojo>(millis, pojo);
-//      dedup.input.process(tuple);
+      tuple = new TimestampedTuple<TestPojo>(millis, pojo);
+      dedup.input.process(tuple);
     }
 //    TestPojo expiredPojo = new TestPojo(100, new Date(millis - 1000 * 60));
-//    dedup.input.process(expiredPojo);
+//    tuple = new TimestampedTuple<TestPojo>(millis, expiredPojo);
+//    dedup.input.process(tuple);
 //    for (int i = 90; i < 200; i++) {
 //      TestPojo pojo = new TestPojo(i, new Date(millis + i));
-//      dedup.input.process(pojo);
+//      tuple = new TimestampedTuple<TestPojo>(millis, pojo);
+//      dedup.input.process(tuple);
 //    }
-//    dedup.handleIdleTime();
-//    dedup.endWindow();
+    dedup.endWindow();
+    System.out.println(uniqueSink.collectedTuples.size());
+    System.out.println(uniqueSink.collectedTuples);
 //    Assert.assertTrue(uniqueSink.collectedTuples.size() == 200);
-//    Assert.assertTrue(duplicateSink.collectedTuples.size() == 10);
-//    Assert.assertTrue(expiredSink.collectedTuples.size() == 1);
 
     dedup.teardown();
   }
