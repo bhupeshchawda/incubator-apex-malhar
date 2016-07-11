@@ -1,5 +1,8 @@
 package org.apache.apex.malhar.lib.dedup;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.apex.malhar.lib.window.Tuple;
 import org.apache.apex.malhar.lib.window.Window;
 import org.apache.apex.malhar.lib.window.impl.WindowedOperatorImpl;
@@ -7,7 +10,7 @@ import org.apache.apex.malhar.lib.window.impl.WindowedOperatorImpl;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 
-public class WindowedDeduper<T> extends WindowedOperatorImpl<T, T, T>
+public abstract class WindowedDeduper<T> extends WindowedOperatorImpl<T, List<T>, T>
 {
 
   /**
@@ -27,6 +30,8 @@ public class WindowedDeduper<T> extends WindowedOperatorImpl<T, T, T>
   @OutputPortFieldAnnotation(optional = true)
   public final transient DefaultOutputPort<T> expired = new DefaultOutputPort<T>();
 
+  protected abstract Object getKey(T tuple);
+
   @Override
   public void dropTuple(Tuple<T> input)
   {
@@ -36,16 +41,24 @@ public class WindowedDeduper<T> extends WindowedOperatorImpl<T, T, T>
   @Override
   public void accumulateTuple(Tuple.WindowedTuple<T> tuple)
   {
-    for (Window window : tuple.getWindows()) {
+    for (Window window : tuple.getWindows()) { // There will be exactly one window
       // process each window
-      T accum = dataStorage.get(window);
+      List<T> accum = dataStorage.get(window);
       if (accum == null) {
+        accum = new ArrayList<T>();
         output.emit(tuple.getValue());
         dataStorage.put(window, accumulation.accumulate(accum, tuple.getValue()));
       } else {
-        duplicates.emit(tuple.getValue());
+        Object tupleKey = getKey(tuple.getValue());
+        for (T key: accum) {
+          if (getKey(key).equals(tupleKey)) {
+            duplicates.emit(tuple.getValue());
+            return;
+          }
+        }
+        output.emit(tuple.getValue());
+        dataStorage.put(window, accumulation.accumulate(accum, tuple.getValue()));
       }
     }
   }
-
 }
