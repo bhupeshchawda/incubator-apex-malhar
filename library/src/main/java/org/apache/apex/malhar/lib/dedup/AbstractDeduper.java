@@ -30,9 +30,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.apex.malhar.lib.state.BucketedState;
+import org.apache.apex.malhar.lib.state.managed.AbstractManagedStateImpl;
 import org.apache.apex.malhar.lib.state.managed.ManagedTimeUnifiedStateImpl;
 import org.apache.apex.malhar.lib.state.managed.TimeBucketAssigner;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.apache.hadoop.fs.Path;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -68,6 +70,9 @@ import com.datatorrent.netlet.util.Slice;
 public abstract class AbstractDeduper<T>
     implements Operator, Operator.IdleTimeHandler, ActivationListener<Context>, Operator.CheckpointNotificationListener
 {
+
+  private static final String BUCKET_DIR = "bucket_data";
+
   /**
    * The input port on which events are received.
    */
@@ -102,7 +107,7 @@ public abstract class AbstractDeduper<T>
   private boolean preserveTupleOrder = true;
 
   @NotNull
-  protected final ManagedTimeUnifiedStateImpl managedState = new ManagedTimeUnifiedStateImpl();
+  protected AbstractManagedStateImpl managedState;
 
   /**
    * Map to hold the result of a tuple processing (unique, duplicate, expired or error) until previous
@@ -123,9 +128,9 @@ public abstract class AbstractDeduper<T>
   @Override
   public void setup(OperatorContext context)
   {
-    FileAccessFSImpl fAccessImpl = new TFileImpl.DTFileImpl();
-    fAccessImpl.setBasePath(context.getValue(DAG.APPLICATION_PATH) + "/bucket_data");
-    managedState.setFileAccess(fAccessImpl);
+    Preconditions.checkNotNull(managedState);
+    ((FileAccessFSImpl)managedState.getFileAccess()).setBasePath(context.getValue(DAG.APPLICATION_PATH)
+        + Path.SEPARATOR + BUCKET_DIR);
     managedState.setup(context);
 
     if (preserveTupleOrder) {
@@ -155,9 +160,7 @@ public abstract class AbstractDeduper<T>
    */
   protected void processTuple(T tuple)
   {
-
-    long time = getTime(tuple);
-    Future<Slice> valFuture = managedState.getAsync(time, getKey(tuple));
+    Future<Slice> valFuture = getAsyncManagedState(tuple);
 
     if (valFuture.isDone()) {
       try {
@@ -211,7 +214,7 @@ public abstract class AbstractDeduper<T>
   {
     if (!preserveTupleOrder || waitingEvents.isEmpty()) {
       if (value == null) {
-        managedState.put(getTime(tuple), getKey(tuple), new Slice(new byte[0]));
+        putManagedState(tuple);
         processUnique(tuple);
       } else {
         processDuplicate(tuple);
@@ -309,7 +312,7 @@ public abstract class AbstractDeduper<T>
         if (future.isDone() || finalize ) {
           try {
             if (future.get() == null && asyncEvents.get(tupleKey) == null) {
-              managedState.put(tupleTime, tupleKey, new Slice(new byte[0]));
+              putManagedState(tuple);
               asyncEvents.put(tupleKey, tupleTime);
               processUnique(tuple);
             } else {
@@ -338,6 +341,10 @@ public abstract class AbstractDeduper<T>
     asyncEvents.clear();
     managedState.endWindow();
   }
+
+  protected abstract Future<Slice> getAsyncManagedState(T tuple);
+
+  protected abstract void putManagedState(T tuple);
 
   /**
    * Records a decision for use later. This is needed to ensure that the order of incoming tuples is maintained.
