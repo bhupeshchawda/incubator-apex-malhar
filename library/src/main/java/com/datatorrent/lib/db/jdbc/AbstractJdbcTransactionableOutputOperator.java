@@ -26,6 +26,8 @@ import java.util.List;
 
 import javax.validation.constraints.Min;
 
+import org.apache.apex.malhar.lib.wal.OutputManager;
+import org.apache.apex.malhar.lib.wal.OutputManagerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +39,7 @@ import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.Operator;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 import com.datatorrent.lib.db.AbstractPassThruTransactionableStoreOutputOperator;
+import com.datatorrent.netlet.util.Slice;
 
 /**
  * This is the base class implementation of a transactionable JDBC output operator.&nbsp;
@@ -65,7 +68,7 @@ public abstract class AbstractJdbcTransactionableOutputOperator<T>
     implements Operator.ActivationListener<Context.OperatorContext>
 {
   protected static int DEFAULT_BATCH_SIZE = 1000;
-
+  private OutputManager<T> manager;
   @Min(1)
   private int batchSize;
   private final List<T> tuples;
@@ -93,7 +96,21 @@ public abstract class AbstractJdbcTransactionableOutputOperator<T>
   public void setup(Context.OperatorContext context)
   {
     super.setup(context);
+    manager = new OutputManagerImpl<T>()
+    {
+      @Override
+      public boolean processPending()
+      {
+        return false;
+      }
 
+      @Override
+      public Slice getKey(T tuple)
+      {
+        return null;
+      }
+    };
+    manager.run();
   }
 
   @Override
@@ -133,10 +150,7 @@ public abstract class AbstractJdbcTransactionableOutputOperator<T>
   @Override
   public void processTuple(T tuple)
   {
-    tuples.add(tuple);
-    if ((tuples.size() - batchStartIdx) >= batchSize) {
-      processBatch();
-    }
+    manager.emit(tuple);
   }
 
   private void processBatch()
