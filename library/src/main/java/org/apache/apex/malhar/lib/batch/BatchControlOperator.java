@@ -10,12 +10,11 @@ import com.datatorrent.common.util.BaseOperator;
 import com.datatorrent.stram.plan.logical.mod.DAGChangeSetImpl;
 import com.google.common.collect.Lists;
 
-public abstract class BatchControlOperator extends BaseOperator implements InputOperator, StatsListener.ContextAwareStatsListener
+public abstract class BatchControlOperator extends BaseOperator implements InputOperator, StatsListener
 {
   private List<DAGChangeSet> dagChanges;
   private DAGChangeSet currentDag;
   private List<DAGChangeSet> changesApplied;
-  private StatsListenerContext statsContext;
 
   public BatchControlOperator()
   {
@@ -60,12 +59,6 @@ public abstract class BatchControlOperator extends BaseOperator implements Input
       response.dagChanges = change;
       return response;
     }
-  }
-
-  @Override
-  public void setContext(StatsListenerContext context)
-  {
-    statsContext = context;
   }
 
   @Override
