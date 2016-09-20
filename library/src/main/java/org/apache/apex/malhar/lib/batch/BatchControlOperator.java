@@ -1,64 +1,34 @@
 package org.apache.apex.malhar.lib.batch;
 
-import java.util.List;
-
-import com.datatorrent.api.DAG.DAGChangeSet;
 import com.datatorrent.api.InputOperator;
 import com.datatorrent.api.StatsListener;
+
+import java.util.Collection;
+import java.util.List;
+
+import org.junit.Assert;
+
+import com.datatorrent.api.Context;
+import com.datatorrent.api.DAG;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.common.util.BaseOperator;
-import com.datatorrent.stram.plan.logical.mod.DAGChangeSetImpl;
-import com.google.common.collect.Lists;
 
-public abstract class BatchControlOperator extends BaseOperator implements InputOperator, StatsListener
+public abstract class BatchControlOperator extends BaseOperator implements InputOperator
 {
-  private List<DAGChangeSet> dagChanges;
-  private DAGChangeSet currentDag;
-  private List<DAGChangeSet> changesApplied;
+  private SharedStatsListener statsListener;
+  private List<DAG.DAGChangeSet> changeSet;
 
   public BatchControlOperator()
   {
-    dagChanges = Lists.newArrayList();
-    changesApplied = Lists.newArrayList();
   }
 
   @Override
   public void setup(OperatorContext context)
   {
-    dagChanges = getDAGChangeSequence();
-  }
-
-  @Override
-  public Response processStats(BatchedOperatorStats stats)
-  {
-    if (changesApplied.size() == 0) {
-      return applyNextDagChange();
-    } else {
-      if (stats.getLastWindowedStats().size() <= 1) {
-        return applyNextDagChange();
-      }
-    }
-    return null;
-  }
-
-  private Response applyNextDagChange()
-  {
-    if (currentDag != null) {
-      changesApplied.add(currentDag);
-    }
-    if (dagChanges.size() > 0) {
-      currentDag = dagChanges.remove(0);
-      Response response = new Response();
-      response.dagChanges = currentDag;
-      return response;
-    } else {
-      // Done with all Dag Changes
-      Response response = new Response();
-      DAGChangeSetImpl change = new DAGChangeSetImpl();
-      change.removeOperator(this);
-      response.dagChanges = change;
-      return response;
-    }
+    Collection<StatsListener> statsListeners = context.getAttributes().get(Context.OperatorContext.STATS_LISTENERS);
+    Assert.assertNotNull(statsListeners);
+    statsListener = (SharedStatsListener) (statsListeners.size() > 0 ? statsListeners.iterator().next() : null);
+    Assert.assertNotNull(statsListener);
   }
 
   @Override
@@ -66,5 +36,8 @@ public abstract class BatchControlOperator extends BaseOperator implements Input
   {
   }
 
-  public abstract List<DAGChangeSet> getDAGChangeSequence();
+  public void setChangeSet(List<DAG.DAGChangeSet> changeSet)
+  {
+    this.changeSet = changeSet;
+  }
 }
