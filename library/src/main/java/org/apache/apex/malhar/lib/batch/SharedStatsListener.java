@@ -1,78 +1,77 @@
 package org.apache.apex.malhar.lib.batch;
 
-import java.io.IOException;
+import java.io.Serializable;
 import java.util.List;
 
-import org.junit.Assert;
-
-import com.datatorrent.api.Operator;
-import com.datatorrent.api.StatsListener;
 import com.datatorrent.api.DAG.DAGChangeSet;
-import com.datatorrent.api.StatsListener.OperatorResponse;
+import com.datatorrent.api.DAG.OperatorMeta;
+import com.datatorrent.api.DAG.StreamMeta;
+import com.datatorrent.api.StatsListener;
 import com.datatorrent.stram.plan.logical.mod.DAGChangeSetImpl;
-import com.google.common.collect.Lists;
 
-public class SharedStatsListener implements StatsListener, StatsListener.ContextAwareStatsListener
+public class SharedStatsListener implements StatsListener, StatsListener.ContextAwareStatsListener, Serializable
 {
-  private List<DAGChangeSet> dagChanges;
-  private DAGChangeSet currentDag;
-  private List<DAGChangeSet> changesApplied;
-  private StatsListenerContext context;
+  private static final long serialVersionUID = 1118974904772892490L;
+
+  private List<DAGChangeSetImpl> dagChanges;
+  private int index = 0;
+  private DAGChangeSetImpl currentDag;
+  private transient StatsListenerContext context;
   private String batchControlOperatorName;
 
   public SharedStatsListener()
   {
-    changesApplied = Lists.newArrayList();
-  }
-
-  public void setup()
-  {
-    Assert.assertNotNull(dagChanges);
-    dagChanges = getDagChanges();
   }
 
   @Override
   public Response processStats(BatchedOperatorStats stats)
   {
-    int id = stats.getOperatorId();
-    if (context.getOperatorName(id).equals(batchControlOperatorName)) {
-      if (changesApplied.isEmpty() && dagChanges.size() > 0) {
-        applyNextDagChange();
-      }
-    } else {
-      // Some operator which is part of current DAG
-      String opName = context.getOperatorName(id);
-      if (opName == null ){
-        if (dagChanges.size() > 0) {
-          applyNextDagChange();
+    System.out.println("Num Operators: " + context.numOperatorsInDAG());
+    System.out.println("OperatorId: " + stats.getOperatorId());
+    if (stats.getOperatorId() == 1) {
+      if (context.numOperatorsInDAG() == 1) { // Just Control Operator running
+        if (index <= dagChanges.size() - 1) {
+          return deployDag(dagChanges.get(index++));
+        }
+      } else {
+        if (context.operatorInactive()) {
+          return undeployDag(currentDag);
         }
       }
-      
     }
     return null;
   }
 
-  private Response applyNextDagChange()
+  private Response deployDag(DAGChangeSetImpl dag)
   {
     Response response = new Response();
-    if (dagChanges.size() > 0) {
-      currentDag = dagChanges.remove(0);
-      changesApplied.add(currentDag);
-      response.dagChanges = currentDag;
-      return response;
-    } else { // Done with all Dag Changes
-      OperatorRequest request = new ShutdownOperatorRequest();
-      response.operatorRequests = Lists.newArrayList(request);
-      return response;
-    }
+    currentDag = dag;
+    response.dagChanges = currentDag;
+    System.out.println("Deploying DAG: " + dag.toString());
+    System.out.println("Deploying DAG: " + currentDag.toString());
+    return response;
   }
 
-  public List<DAGChangeSet> getDagChanges()
+  private Response undeployDag(DAGChangeSetImpl dag)
+  {
+    DAGChangeSetImpl dagChange = new DAGChangeSetImpl();
+    for (StreamMeta stream : ((DAGChangeSetImpl)dag).getAllStreams()) {
+      dagChange.removeStream(stream.getName());
+    }
+    for (OperatorMeta operator: ((DAGChangeSetImpl)dag).getAllOperators()) {
+      dagChange.removeOperator(operator.getName());
+    }
+    Response response = new Response();
+    response.dagChanges = dagChange;
+    return response;
+  }
+
+  public List<DAGChangeSetImpl> getDagChanges()
   {
     return dagChanges;
   }
 
-  public void setDagChanges(List<DAGChangeSet> dagChanges)
+  public void setDagChanges(List<DAGChangeSetImpl> dagChanges)
   {
     this.dagChanges = dagChanges;
   }
@@ -80,6 +79,7 @@ public class SharedStatsListener implements StatsListener, StatsListener.Context
   @Override
   public void setContext(StatsListenerContext context)
   {
+    System.out.println("Setting context");
     this.context = context;
   }
 
@@ -91,15 +91,5 @@ public class SharedStatsListener implements StatsListener, StatsListener.Context
   public String getBatchControlOperatorName()
   {
     return batchControlOperatorName;
-  }
-
-  public static class ShutdownOperatorRequest implements OperatorRequest
-  {
-    @Override
-    public OperatorResponse execute(Operator operator, int operatorId, long windowId) throws IOException
-    {
-      operator.teardown();
-      return null;
-    }
   }
 }
