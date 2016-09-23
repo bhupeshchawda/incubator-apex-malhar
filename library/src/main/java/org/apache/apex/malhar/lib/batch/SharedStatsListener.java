@@ -35,6 +35,7 @@ public class SharedStatsListener implements StatsListener, StatsListener.Context
         }
       } else {
         if (context.operatorInactive()) {
+          System.out.println("Undeploying DAG");
           return undeployDag(currentDag);
         }
       }
