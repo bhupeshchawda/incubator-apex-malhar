@@ -31,7 +31,7 @@ public interface WatermarkControlTuple extends UserDefinedControlTuple
     @Override
     public WatermarkOption.Type getWatermarkType()
     {
-      return WatermarkOption.Type.TIME;
+      return WatermarkOption.Type.PROCESSING_TIME;
     }
   }
 
@@ -53,11 +53,11 @@ public interface WatermarkControlTuple extends UserDefinedControlTuple
 
   class EofWatermark implements WatermarkControlTuple
   {
-    private long numFilesEnded;
+    private String fileName;
 
-    public EofWatermark(long numFilesEnded)
+    public EofWatermark(String fileName)
     {
-      this.numFilesEnded = numFilesEnded;
+      this.fileName = fileName;
     }
 
     @Override

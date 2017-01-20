@@ -2,39 +2,25 @@ package org.apache.apex.malhar.lib.window.windowable;
 
 import javax.validation.constraints.Min;
 
-public class WatermarkOption
+public interface WatermarkOption
 {
-  Type type;
+  Type getType();
 
-  public WatermarkOption(Type type)
-  {
-    this.type = type;
-  }
-
-  public Type getType()
-  {
-    return type;
-  }
-
-  public enum Type
+  enum Type
   {
     FINAL,
-    TIME,
+    PROCESSING_TIME,
+    EVENT_TIME,
     TUPLES,
     EOF
   }
 
-  class TimeWatermarkOption extends WatermarkOption
+  class TimeWatermarkOption implements WatermarkOption
   {
     @Min(1)
     private long delayMillis;
 
-    public TimeWatermarkOption(Type type)
-    {
-      super(type);
-    }
-
-    public void setDelayMillis(long delayMillis)
+    public TimeWatermarkOption(long delayMillis)
     {
       this.delayMillis = delayMillis;
     }
@@ -43,16 +29,22 @@ public class WatermarkOption
     {
       return delayMillis;
     }
+
+    @Override
+    public Type getType()
+    {
+      return Type.PROCESSING_TIME;
+    }
   }
 
-  class TupleWatermarkOption extends WatermarkOption
+  class TupleWatermarkOption implements WatermarkOption
   {
     @Min(1)
     private long numTuples;
 
-    public TupleWatermarkOption(Type type)
+    public TupleWatermarkOption(long numTuples)
     {
-      super(type);
+      this.numTuples = numTuples;
     }
 
     public long getNumTuples()
@@ -60,11 +52,28 @@ public class WatermarkOption
       return numTuples;
     }
 
-    public void setNumTuples(long numTuples)
+    @Override
+    public Type getType()
     {
-      this.numTuples = numTuples;
+      return Type.TUPLES;
     }
   }
 
+  class EofWatermarkOption implements WatermarkOption
+  {
+    @Override
+    public Type getType()
+    {
+      return Type.EOF;
+    }
+  }
 
+  class FinalWatermarkOption implements WatermarkOption
+  {
+    @Override
+    public Type getType()
+    {
+      return Type.FINAL;
+    }
+  }
 }

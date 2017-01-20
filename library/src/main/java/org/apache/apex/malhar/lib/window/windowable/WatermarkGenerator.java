@@ -2,9 +2,9 @@ package org.apache.apex.malhar.lib.window.windowable;
 
 public interface WatermarkGenerator<T>
 {
-  void emitWatermarkAtEndWindow();
+  WatermarkControlTuple getWatermark();
 
   void setWatermarkOption(WatermarkOption watermarkOption);
 
-  void processTupleForWatermark(T tuple);
+  void processWatermarkEvents(WatermarkOption.Type type, T tuple);
 }
