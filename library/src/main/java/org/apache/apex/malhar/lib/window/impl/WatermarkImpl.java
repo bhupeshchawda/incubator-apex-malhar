@@ -22,7 +22,7 @@ import org.apache.apex.malhar.lib.window.ControlTuple;
 import org.apache.hadoop.classification.InterfaceStability;
 
 /**
- * The implementation of the Watermark tuple
+ * The implementation of the WatermarkControlTuple tuple
  *
  * @since 3.5.0
  */
@@ -48,8 +48,14 @@ public class WatermarkImpl implements ControlTuple.Watermark
   }
 
   @Override
+  public WatermarkType getWatermarkType()
+  {
+    return WatermarkType.EVENT_TIME;
+  }
+
+  @Override
   public String toString()
   {
-    return "[Watermark " + getTimestamp() + "]";
+    return "[WatermarkControlTuple " + getTimestamp() + "]";
   }
 }

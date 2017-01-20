@@ -30,7 +30,7 @@ import org.apache.hadoop.classification.InterfaceStability;
 public interface ControlTuple
 {
   /**
-   * Watermark control tuple
+   * WatermarkControlTuple control tuple
    */
   interface Watermark extends ControlTuple
   {
@@ -41,4 +41,5 @@ public interface ControlTuple
      */
     long getTimestamp();
   }
+
 }
