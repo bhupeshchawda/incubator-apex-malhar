@@ -69,13 +69,6 @@ public abstract class AbstractManagedStateInnerJoinOperator<K,T> extends Abstrac
     stream2Store = new ManagedTimeStateImpl();
     stream1Store.setNumBuckets(noOfBuckets);
     stream2Store.setNumBuckets(noOfBuckets);
-    assert stream1Store.getTimeBucketAssigner() == stream2Store.getTimeBucketAssigner();
-    if (bucketSpanTime != null) {
-      stream1Store.getTimeBucketAssigner().setBucketSpan(Duration.millis(bucketSpanTime));
-    }
-    if (stream1Store.getTimeBucketAssigner() instanceof MovingBoundaryTimeBucketAssigner) {
-      ((MovingBoundaryTimeBucketAssigner)stream1Store.getTimeBucketAssigner()).setExpireBefore(Duration.millis(getExpiryTime()));
-    }
 
     stream1Data = new ManagedTimeStateMultiValue(stream1Store, !isLeftKeyPrimary());
     stream2Data = new ManagedTimeStateMultiValue(stream2Store, !isRightKeyPrimary());
@@ -153,6 +146,20 @@ public abstract class AbstractManagedStateInnerJoinOperator<K,T> extends Abstrac
     stream1Store.getCheckpointManager().setStatePath("managed_state_" + stream2State);
     stream1Store.setup(context);
     stream2Store.setup(context);
+
+    assert stream1Store.getTimeBucketAssigner() == stream2Store.getTimeBucketAssigner();
+    if (bucketSpanTime != null) {
+      stream1Store.getTimeBucketAssigner().setBucketSpan(Duration.millis(bucketSpanTime));
+    }
+    if (stream1Store.getTimeBucketAssigner() instanceof MovingBoundaryTimeBucketAssigner) {
+      ((MovingBoundaryTimeBucketAssigner)stream1Store.getTimeBucketAssigner()).setExpireBefore(Duration.millis(getExpiryTime()));
+    }
+    if (bucketSpanTime != null) {
+      stream2Store.getTimeBucketAssigner().setBucketSpan(Duration.millis(bucketSpanTime));
+    }
+    if (stream2Store.getTimeBucketAssigner() instanceof MovingBoundaryTimeBucketAssigner) {
+      ((MovingBoundaryTimeBucketAssigner)stream2Store.getTimeBucketAssigner()).setExpireBefore(Duration.millis(getExpiryTime()));
+    }
   }
 
   @Override

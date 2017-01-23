@@ -194,7 +194,7 @@ public class ManagedTimeStateMultiValue<K,V> implements Spillable.SpillableListM
   @Override
   public boolean put(@Nullable K k, @Nullable V v)
   {
-    long timeBucketId = store.getTimeBucketAssigner().getTimeBucketAndAdjustBoundaries(timeBucket);
+    long timeBucketId = store.getTimeBucketAssigner().getTimeBucket(timeBucket);
     if (timeBucketId == -1) {
       return false;
     }
@@ -227,7 +227,7 @@ public class ManagedTimeStateMultiValue<K,V> implements Spillable.SpillableListM
    */
   public boolean put(@Nullable K k, @Nullable V v, long timeBucket)
   {
-    long timeBucketId = store.getTimeBucketAssigner().getTimeBucketAndAdjustBoundaries(timeBucket);
+    long timeBucketId = store.getTimeBucketAssigner().getTimeBucket(timeBucket);
     if (timeBucketId == -1) {
       return false;
     }
@@ -393,18 +393,18 @@ public class ManagedTimeStateMultiValue<K,V> implements Spillable.SpillableListM
 
   public static class ManagedData
   {
-    private int keyBucket;
+    private long keyBucket;
     private long timeBucket;
     private Slice value;
 
-    public ManagedData(int keyBucket, long timeBucket, Slice value)
+    public ManagedData(long keyBucket, long timeBucket, Slice value)
     {
       this.keyBucket = keyBucket;
       this.timeBucket = timeBucket;
       this.value = value;
     }
 
-    public int getKeyBucket()
+    public long getKeyBucket()
     {
       return keyBucket;
     }
