@@ -724,8 +724,8 @@ public abstract class AbstractFileInputOperator<T> implements InputOperator, Par
         localProcessedFileCount.increment();
       }
 
+      lastScanMillis = System.currentTimeMillis();
     }
-    lastScanMillis = System.currentTimeMillis();
   }
 
   /**
