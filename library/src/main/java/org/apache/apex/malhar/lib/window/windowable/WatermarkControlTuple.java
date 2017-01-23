@@ -65,5 +65,10 @@ public interface WatermarkControlTuple extends UserDefinedControlTuple
     {
       return WatermarkOption.Type.EOF;
     }
+
+    public String getFileName()
+    {
+      return fileName;
+    }
   }
 }

@@ -9,10 +9,10 @@ public interface WatermarkOption
   enum Type
   {
     FINAL,
-    PROCESSING_TIME,
-    EVENT_TIME,
+    EOF,
     TUPLES,
-    EOF
+    PROCESSING_TIME,
+    EVENT_TIME
   }
 
   class TimeWatermarkOption implements WatermarkOption

@@ -48,12 +48,6 @@ public class WatermarkImpl implements ControlTuple.Watermark
   }
 
   @Override
-  public WatermarkType getWatermarkType()
-  {
-    return WatermarkType.EVENT_TIME;
-  }
-
-  @Override
   public String toString()
   {
     return "[WatermarkControlTuple " + getTimestamp() + "]";
