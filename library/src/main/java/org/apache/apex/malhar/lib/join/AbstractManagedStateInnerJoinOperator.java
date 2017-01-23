@@ -144,22 +144,22 @@ public abstract class AbstractManagedStateInnerJoinOperator<K,T> extends Abstrac
     ((FileAccessFSImpl)stream2Store.getFileAccess()).setBasePath(context.getValue(DAG.APPLICATION_PATH) + Path.SEPARATOR + stateDir + Path.SEPARATOR + String.valueOf(context.getId()) + Path.SEPARATOR + stream2State);
     stream1Store.getCheckpointManager().setStatePath("managed_state_" + stream1State);
     stream1Store.getCheckpointManager().setStatePath("managed_state_" + stream2State);
+
+    MovingBoundaryTimeBucketAssigner leftAssigner = new MovingBoundaryTimeBucketAssigner();
+    leftAssigner.setExpireBefore(Duration.millis(getExpiryTime()));
+    stream1Store.setTimeBucketAssigner(leftAssigner);
+    MovingBoundaryTimeBucketAssigner rightAssigner = new MovingBoundaryTimeBucketAssigner();
+    rightAssigner.setExpireBefore(Duration.millis(getExpiryTime()));
+    stream2Store.setTimeBucketAssigner(rightAssigner);
+    if (bucketSpanTime != null) {
+      leftAssigner.setBucketSpan(Duration.millis(bucketSpanTime));
+      rightAssigner.setBucketSpan(Duration.millis(bucketSpanTime));
+    }
+
     stream1Store.setup(context);
     stream2Store.setup(context);
 
     assert stream1Store.getTimeBucketAssigner() == stream2Store.getTimeBucketAssigner();
-    if (bucketSpanTime != null) {
-      stream1Store.getTimeBucketAssigner().setBucketSpan(Duration.millis(bucketSpanTime));
-    }
-    if (stream1Store.getTimeBucketAssigner() instanceof MovingBoundaryTimeBucketAssigner) {
-      ((MovingBoundaryTimeBucketAssigner)stream1Store.getTimeBucketAssigner()).setExpireBefore(Duration.millis(getExpiryTime()));
-    }
-    if (bucketSpanTime != null) {
-      stream2Store.getTimeBucketAssigner().setBucketSpan(Duration.millis(bucketSpanTime));
-    }
-    if (stream2Store.getTimeBucketAssigner() instanceof MovingBoundaryTimeBucketAssigner) {
-      ((MovingBoundaryTimeBucketAssigner)stream2Store.getTimeBucketAssigner()).setExpireBefore(Duration.millis(getExpiryTime()));
-    }
   }
 
   @Override

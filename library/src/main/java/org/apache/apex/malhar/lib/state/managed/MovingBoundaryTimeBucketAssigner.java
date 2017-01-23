@@ -22,6 +22,8 @@ import javax.validation.constraints.NotNull;
 
 import org.joda.time.Duration;
 import org.joda.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.esotericsoftware.kryo.serializers.JavaSerializer;
@@ -51,9 +53,11 @@ import com.esotericsoftware.kryo.serializers.JavaSerializer;
  */
 public class MovingBoundaryTimeBucketAssigner extends TimeBucketAssigner
 {
+  public static final Logger logger = LoggerFactory.getLogger(MovingBoundaryTimeBucketAssigner.class);
   private long start;
 
   private long end;
+  private long oldEnd;
 
   @NotNull
   private Instant referenceInstant = new Instant();
@@ -82,6 +86,7 @@ public class MovingBoundaryTimeBucketAssigner extends TimeBucketAssigner
       bucketSpanMillis = getBucketSpan().getMillis();
       numBuckets = (int)((expireBefore.getMillis() + bucketSpanMillis - 1) / bucketSpanMillis);
       end = start + (numBuckets * bucketSpanMillis);
+      oldEnd = end;
 
       setInitialized(true);
     }
@@ -115,6 +120,7 @@ public class MovingBoundaryTimeBucketAssigner extends TimeBucketAssigner
   @Override
   public long getTimeBucket(long time)
   {
+    logger.info("Get time bucket for time = {}", time);
     if (time < start) {
       return -1;
     }
@@ -125,12 +131,17 @@ public class MovingBoundaryTimeBucketAssigner extends TimeBucketAssigner
       long move = (diffInBuckets + 1) * bucketSpanMillis;
       start += move;
       end += move;
-      lowestPurgeableTimeBucket += diffInBuckets;
+      // lowestPurgeableTimeBucket += diffInBuckets;
       // trigger purge when lower bound changes
-      triggerPurge = (diffInBuckets > 0);
+      logger.info("Moving start {} and end {}", start, end);
+      if (((time - oldEnd) / bucketSpanMillis) > 0) {
+        triggerPurge = true;
+        oldEnd = end;
+        lowestPurgeableTimeBucket = ((start - fixedStart) / bucketSpanMillis) - 1;
+        logger.info("Trigger purge lowestPurgeableTimeBucket = {}", lowestPurgeableTimeBucket);
+      }
     }
     return key;
-
   }
 
   /**

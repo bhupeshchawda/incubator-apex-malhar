@@ -136,9 +136,9 @@ public class IncrementalCheckpointManager extends FSWindowDataManager
 
           for (Map.Entry<Long, Map<Slice, Bucket.BucketedValue>> singleBucket : buckets.entrySet()) {
             long bucketId = singleBucket.getKey();
-            if (bucketId > latestPurgedTimeBucket) {
-              managedStateContext.getBucketsFileSystem().writeBucketData(windowId, bucketId, singleBucket.getValue());
-            }
+            //if (bucketId > latestPurgedTimeBucket) {
+            managedStateContext.getBucketsFileSystem().writeBucketData(windowId, bucketId, singleBucket.getValue());
+            //}
           }
           committed(windowId);
         } catch (Throwable t) {

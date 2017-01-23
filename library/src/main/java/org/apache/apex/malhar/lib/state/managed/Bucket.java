@@ -196,6 +196,7 @@ public interface Bucket extends ManagedStateComponent, KeyValueByteStreamProvide
    */
   class DefaultBucket implements Bucket
   {
+    public static final Logger logger = LoggerFactory.getLogger(DefaultBucket.class);
     private final long bucketId;
 
     //Key -> Ordered values
@@ -409,6 +410,7 @@ public interface Bucket extends ManagedStateComponent, KeyValueByteStreamProvide
     @Override
     public void put(Slice key, long timeBucket, Slice value)
     {
+      logger.info("Putting data in Time Bucket {}", timeBucket);
       // This call is lightweight
       releaseMemory();
       key = SliceUtils.toBufferSlice(key);
