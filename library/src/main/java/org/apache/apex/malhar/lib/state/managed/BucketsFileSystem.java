@@ -70,6 +70,7 @@ import com.datatorrent.netlet.util.Slice;
  */
 public class BucketsFileSystem implements ManagedStateComponent
 {
+  public static final Logger logger = LoggerFactory.getLogger(BucketsFileSystem.class);
   static final String META_FILE_NAME = "_META";
   private static final int META_FILE_VERSION = 1;
 
@@ -141,6 +142,7 @@ public class BucketsFileSystem implements ManagedStateComponent
    */
   protected void writeBucketData(long windowId, long bucketId, Map<Slice, Bucket.BucketedValue> data) throws IOException
   {
+    logger.info("Writing in bucket {}", bucketId);
     Table<Long, Slice, Bucket.BucketedValue> timeBucketedKeys = TreeBasedTable.create(Ordering.<Long>natural(),
         managedStateContext.getKeyComparator());
 
@@ -207,6 +209,7 @@ public class BucketsFileSystem implements ManagedStateComponent
       rename(bucketId, tmpFileName, getFileName(timeBucket));
       tbm.updateTimeBucketMeta(windowId, dataSize, firstKey);
       updateTimeBuckets(tbm);
+      logger.info("Renamed from {} to {}", tmpFileName, getFileName(timeBucket));
     }
 
     updateBucketMetaFile(bucketId);

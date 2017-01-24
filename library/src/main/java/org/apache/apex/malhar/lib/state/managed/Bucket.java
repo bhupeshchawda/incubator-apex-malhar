@@ -297,7 +297,7 @@ public interface Bucket extends ManagedStateComponent, KeyValueByteStreamProvide
     private Slice getFromReaders(Slice key, long timeBucket)
     {
       try {
-        if (cachedBucketMetas == null) {
+        if (true) {
           cachedBucketMetas = managedStateContext.getBucketsFileSystem().getAllTimeBuckets(bucketId);
         }
         if (timeBucket != -1) {
@@ -362,6 +362,9 @@ public interface Bucket extends ManagedStateComponent, KeyValueByteStreamProvide
      */
     private BucketedValue getValueFromTimeBucketReader(Slice key, long timeBucket)
     {
+      if (timeBucket <= ((MovingBoundaryTimeBucketAssigner)managedStateContext.getTimeBucketAssigner()).getLowestPurgeableTimeBucket()) {
+        return null;
+      }
       FileAccess.FileReader fileReader = readers.get(timeBucket);
       if (fileReader != null) {
         return readValue(fileReader, key, timeBucket);
@@ -388,7 +391,9 @@ public interface Bucket extends ManagedStateComponent, KeyValueByteStreamProvide
           return null;
         }
       } catch (IOException e) {
-        throw new RuntimeException("reading " + bucketId + ", " + timeBucket, e);
+        logger.info("Exception occurred - {}", e.getMessage());
+        e.printStackTrace();
+        return null;
       }
     }
 
@@ -410,7 +415,7 @@ public interface Bucket extends ManagedStateComponent, KeyValueByteStreamProvide
     @Override
     public void put(Slice key, long timeBucket, Slice value)
     {
-      logger.info("Putting data in Time Bucket {}", timeBucket);
+      logger.info("Putting data in memory bucket - Key {} Time Bucket {}", key, timeBucket);
       // This call is lightweight
       releaseMemory();
       key = SliceUtils.toBufferSlice(key);

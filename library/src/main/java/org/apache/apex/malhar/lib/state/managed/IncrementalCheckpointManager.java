@@ -108,6 +108,7 @@ public class IncrementalCheckpointManager extends FSWindowDataManager
       {
         while (transfer) {
           transferWindowFiles();
+
           if (latestExpiredTimeBucket.get() > -1) {
             try {
               latestPurgedTimeBucket = latestExpiredTimeBucket.getAndSet(-1);
@@ -119,9 +120,16 @@ public class IncrementalCheckpointManager extends FSWindowDataManager
               Throwables.propagate(e);
             }
           }
+
         }
       }
     });
+  }
+
+  @Override
+  public void save(Object object, long windowId) throws IOException
+  {
+    throw new UnsupportedOperationException("doesn't support saving any object");
   }
 
   protected void transferWindowFiles()
@@ -155,12 +163,6 @@ public class IncrementalCheckpointManager extends FSWindowDataManager
       //sleep can be interrupted by teardown so no need to re-throw interrupt exception
       LOG.debug("interrupted", ex);
     }
-  }
-
-  @Override
-  public void save(Object object, long windowId) throws IOException
-  {
-    throw new UnsupportedOperationException("doesn't support saving any object");
   }
 
   /**
@@ -230,6 +232,9 @@ public class IncrementalCheckpointManager extends FSWindowDataManager
         break;
       }
     }
+
+    // Moved this from thread in setup
+
   }
 
   @Override

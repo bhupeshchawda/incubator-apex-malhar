@@ -127,6 +127,7 @@ public abstract class AbstractManagedStateImpl
     implements ManagedState, Component<OperatorContext>, Operator.CheckpointNotificationListener, ManagedStateContext,
     TimeBucketAssigner.PurgeListener, BucketProvider
 {
+  public static final Logger logger = LoggerFactory.getLogger(AbstractManagedStateImpl.class);
   private long maxMemorySize;
 
   protected long numBuckets;
@@ -305,7 +306,9 @@ public abstract class AbstractManagedStateImpl
     long bucketIdx = prepareBucket(bucketId);
     Bucket bucket = buckets.get(bucketIdx);
     synchronized (bucket) {
+      logger.info("getting value from bucket in memory key {} timeBucket {}", key, timeBucket);
       Slice cachedVal = bucket.get(key, timeBucket, Bucket.ReadSource.MEMORY);
+      logger.info("found {}", cachedVal);
       if (cachedVal != null) {
         return Futures.immediateFuture(cachedVal);
       }

@@ -73,6 +73,10 @@ public class MovingBoundaryTimeBucketAssigner extends TimeBucketAssigner
   private transient boolean triggerPurge;
   private transient long lowestPurgeableTimeBucket = -1;
 
+  public long getLowestPurgeableTimeBucket()
+  {
+    return lowestPurgeableTimeBucket;
+  }
 
   @Override
   public void setup(@NotNull ManagedStateContext managedStateContext)
@@ -88,6 +92,7 @@ public class MovingBoundaryTimeBucketAssigner extends TimeBucketAssigner
       end = start + (numBuckets * bucketSpanMillis);
       oldEnd = end;
 
+      logger.info("Fixed start and start {} end {} oldEnd {}", fixedStart, end, oldEnd);
       setInitialized(true);
     }
   }
@@ -120,7 +125,7 @@ public class MovingBoundaryTimeBucketAssigner extends TimeBucketAssigner
   @Override
   public long getTimeBucket(long time)
   {
-    logger.info("Get time bucket for time = {}", time);
+    logger.info("Get time bucket - time = {}", time);
     if (time < start) {
       return -1;
     }
@@ -133,7 +138,7 @@ public class MovingBoundaryTimeBucketAssigner extends TimeBucketAssigner
       end += move;
       // lowestPurgeableTimeBucket += diffInBuckets;
       // trigger purge when lower bound changes
-      logger.info("Moving start {} and end {}", start, end);
+      logger.info("Moving start {} and end {} by {}", start, end, move);
       if (((time - oldEnd) / bucketSpanMillis) > 0) {
         triggerPurge = true;
         oldEnd = end;
