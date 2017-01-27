@@ -365,7 +365,7 @@ public interface Bucket extends ManagedStateComponent, KeyValueByteStreamProvide
       if (timeBucket <= ((MovingBoundaryTimeBucketAssigner)managedStateContext.getTimeBucketAssigner()).getLowestPurgeableTimeBucket()) {
         return null;
       }
-      FileAccess.FileReader fileReader = readers.get(timeBucket);
+      FileAccess.FileReader fileReader = getReader(timeBucket);
       if (fileReader != null) {
         return readValue(fileReader, key, timeBucket);
       }
@@ -374,9 +374,33 @@ public interface Bucket extends ManagedStateComponent, KeyValueByteStreamProvide
         if (loadFileReader(timeBucket)) {
           return readValue(readers.get(timeBucket), key, timeBucket);
         }
+        if (readers.get(timeBucket) != null) {
+          LOG.info("Returning null reader for time bucket {}", timeBucket);
+        }
         return null;
       } catch (IOException e) {
         throw new RuntimeException("while loading " + bucketId + ", " + timeBucket, e);
+      }
+    }
+
+    protected FileAccess.FileReader getReader(long timeBucket)
+    {
+      try {
+        if (readers.get(timeBucket) != null
+            && !managedStateContext.getBucketsFileSystem().isTimeBucketMutated(bucketId, timeBucket)) {
+          return readers.get(timeBucket);
+        } else {
+          if (loadFileReader(timeBucket)) {
+            return readers.get(timeBucket);
+          } else {
+            if (readers.get(timeBucket) != null) {
+              LOG.info("Returning null reader for time bucket {}", timeBucket);
+            }
+            return null;
+          }
+        }
+      } catch (IOException e) {
+        throw new RuntimeException("getting readers for timeBucket " + timeBucket + " " + e);
       }
     }
 

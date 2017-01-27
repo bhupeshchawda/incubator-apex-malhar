@@ -25,12 +25,17 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import org.joda.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.apex.malhar.lib.state.managed.ManagedTimeStateImpl;
 import org.apache.apex.malhar.lib.state.managed.ManagedTimeStateMultiValue;
 import org.apache.apex.malhar.lib.state.managed.MovingBoundaryTimeBucketAssigner;
 import org.apache.apex.malhar.lib.state.spillable.Spillable;
 import org.apache.hadoop.fs.Path;
+
 import com.google.common.collect.Maps;
+
 import com.datatorrent.api.Context;
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.Operator;
@@ -50,6 +55,8 @@ import com.datatorrent.lib.fileaccess.FileAccessFSImpl;
 public abstract class AbstractManagedStateInnerJoinOperator<K,T> extends AbstractInnerJoinOperator<K,T> implements
     Operator.CheckpointNotificationListener, Operator.IdleTimeHandler
 {
+  public static final Logger logger = LoggerFactory.getLogger(AbstractInnerJoinOperator.class);
+
   public static final String stateDir = "managedState";
   public static final String stream1State = "stream1Data";
   public static final String stream2State = "stream2Data";
@@ -99,7 +106,11 @@ public abstract class AbstractManagedStateInnerJoinOperator<K,T> extends Abstrac
     Future<List> future = ((ManagedTimeStateMultiValue)valuestore).getAsync(key);
     if (future.isDone()) {
       try {
-        joinStream(tuple,isStream1Data, future.get());
+        List<T> value = future.get();
+        if (value == null) {
+          logger.info("Lookup null Stream {} Key {}", isStream1Data ? 1 : 2, key);
+        }
+        joinStream(tuple,isStream1Data, value);
       } catch (InterruptedException | ExecutionException e) {
         throw new RuntimeException(e);
       }
@@ -186,6 +197,10 @@ public abstract class AbstractManagedStateInnerJoinOperator<K,T> extends Abstrac
       if (future.isDone() || finalize) {
         try {
           JoinEvent<K,T> event = waitingEvent.getKey();
+          List<T> value = future.get();
+          if (value == null) {
+            logger.info("Lookup null Stream {} Key {}", event.isStream1Data ? 1 : 2, event.key);
+          }
           joinStream(event.value,event.isStream1Data,future.get());
         } catch (InterruptedException | ExecutionException e) {
           throw new RuntimeException("end window", e);

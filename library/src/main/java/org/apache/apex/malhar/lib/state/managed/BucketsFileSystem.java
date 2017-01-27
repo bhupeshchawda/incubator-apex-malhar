@@ -209,7 +209,9 @@ public class BucketsFileSystem implements ManagedStateComponent
       updateTimeBuckets(tbm);
     }
 
-    updateBucketMetaFile(bucketId);
+    synchronized (META_FILE_NAME) {
+      updateBucketMetaFile(bucketId);
+    }
   }
 
   /**
@@ -263,6 +265,17 @@ public class BucketsFileSystem implements ManagedStateComponent
     }
   }
 
+  public boolean isTimeBucketMutated(long bucketId, long timeBucketId) throws IOException
+  {
+    synchronized (timeBucketsMeta) {
+      MutableTimeBucketMeta tbm = timeBucketsMeta.get(bucketId, timeBucketId);
+      if (tbm != null) {
+        return tbm.changed;
+      }
+      return false;
+    }
+  }
+
   /**
    * This should be entered only after acquiring the lock on {@link #timeBucketsMeta}
    *
@@ -277,13 +290,15 @@ public class BucketsFileSystem implements ManagedStateComponent
     if (tbm != null) {
       return tbm;
     }
-    if (exists(bucketId, META_FILE_NAME)) {
-      try (DataInputStream dis = getInputStream(bucketId, META_FILE_NAME)) {
-        //Load meta info of all the time buckets of the bucket identified by bucketId.
-        loadBucketMetaFile(bucketId, dis);
+    synchronized (META_FILE_NAME) {
+      if (exists(bucketId, META_FILE_NAME)) {
+        try (DataInputStream dis = getInputStream(bucketId, META_FILE_NAME)) {
+          //Load meta info of all the time buckets of the bucket identified by bucketId.
+          loadBucketMetaFile(bucketId, dis);
+        }
+      } else {
+        return null;
       }
-    } else {
-      return null;
     }
     return timeBucketsMeta.get(bucketId, timeBucketId);
   }
