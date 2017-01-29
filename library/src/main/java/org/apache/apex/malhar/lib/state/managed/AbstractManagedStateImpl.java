@@ -377,6 +377,7 @@ public abstract class AbstractManagedStateImpl
         throw new RuntimeException(e);
       }
     }
+
   }
 
   @Override
@@ -402,6 +403,7 @@ public abstract class AbstractManagedStateImpl
         throw new RuntimeException("committing " + windowId, e);
       }
     }
+    stateTracker.run();
   }
 
   /**

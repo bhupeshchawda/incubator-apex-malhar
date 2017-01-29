@@ -57,7 +57,7 @@ class StateTracker extends TimerTask
     this.managedStateImpl = Preconditions.checkNotNull(managedStateImpl, "managed state impl");
 
     long intervalMillis = managedStateImpl.getCheckStateSizeInterval().getMillis();
-    memoryFreeService.scheduleAtFixedRate(this, intervalMillis, intervalMillis);
+//    memoryFreeService.scheduleAtFixedRate(this, intervalMillis, intervalMillis);
   }
 
   void bucketAccessed(long bucketId)

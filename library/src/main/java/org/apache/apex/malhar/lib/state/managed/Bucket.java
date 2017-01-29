@@ -336,7 +336,7 @@ public interface Bucket extends ManagedStateComponent, KeyValueByteStreamProvide
     public Slice get(Slice key, long timeBucket, ReadSource readSource)
     {
       // This call is lightweight
-      releaseMemory();
+//      releaseMemory();
       key = SliceUtils.toBufferSlice(key);
       switch (readSource) {
         case MEMORY:
@@ -417,7 +417,7 @@ public interface Bucket extends ManagedStateComponent, KeyValueByteStreamProvide
     public void put(Slice key, long timeBucket, Slice value)
     {
       // This call is lightweight
-      releaseMemory();
+//      releaseMemory();
       key = SliceUtils.toBufferSlice(key);
       value = SliceUtils.toBufferSlice(value);
 
@@ -466,16 +466,16 @@ public interface Bucket extends ManagedStateComponent, KeyValueByteStreamProvide
       }
 
       fileCache.clear();
-      if (cachedBucketMetas != null) {
-
-        for (BucketsFileSystem.TimeBucketMeta tbm : cachedBucketMetas.values()) {
-          FileAccess.FileReader reader = readers.remove(tbm.getTimeBucketId());
-          if (reader != null) {
-            memoryFreed += tbm.getSizeInBytes();
-            reader.close();
-          }
-        }
-      }
+//      if (cachedBucketMetas != null) {
+//
+//        for (BucketsFileSystem.TimeBucketMeta tbm : cachedBucketMetas.values()) {
+//          FileAccess.FileReader reader = readers.remove(tbm.getTimeBucketId());
+//          if (reader != null) {
+//            memoryFreed += tbm.getSizeInBytes();
+//            reader.close();
+//          }
+//        }
+//      }
 
       sizeInBytes.getAndAdd(-memoryFreed);
 
@@ -512,7 +512,7 @@ public interface Bucket extends ManagedStateComponent, KeyValueByteStreamProvide
     @Override
     public Map<Slice, BucketedValue> checkpoint(long windowId)
     {
-      releaseMemory();
+//      releaseMemory();
       try {
         //transferring the data from flash to check-pointed state in finally block and re-initializing the flash.
         return flash;
@@ -525,7 +525,6 @@ public interface Bucket extends ManagedStateComponent, KeyValueByteStreamProvide
     @Override
     public void committed(long committedWindowId)
     {
-      releaseMemory();
       Iterator<Map.Entry<Long, Map<Slice, BucketedValue>>> stateIterator = checkpointedData.entrySet().iterator();
 
       while (stateIterator.hasNext()) {
@@ -567,6 +566,7 @@ public interface Bucket extends ManagedStateComponent, KeyValueByteStreamProvide
         }
       }
 
+      releaseMemory();
       cachedBucketMetas = null;
     }
 
