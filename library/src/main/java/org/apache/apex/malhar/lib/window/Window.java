@@ -161,6 +161,19 @@ public interface Window<WINDOW extends Comparable<WINDOW>> extends Comparable<WI
     }
   }
 
+  class SequenceWindow extends TimeWindow
+  {
+    private SequenceWindow()
+    {
+      super(0, 1);
+    }
+
+    public SequenceWindow(long begin)
+    {
+
+    }
+  }
+
   /**
    * SessionWindow is a window that represents a time slice for a key, with the time slice being variable length.
    *

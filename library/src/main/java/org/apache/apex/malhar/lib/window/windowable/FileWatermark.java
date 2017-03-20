@@ -41,6 +41,7 @@ public class FileWatermark implements WatermarkTuple
     public BeginFileWatermark()
     {
     }
+
     public BeginFileWatermark(long timestamp, String fileName)
     {
       super(timestamp, DeliveryType.IMMEDIATE, fileName);
@@ -52,6 +53,7 @@ public class FileWatermark implements WatermarkTuple
     public EndFileWatermark()
     {
     }
+
     public EndFileWatermark(long timestamp, String fileName)
     {
       super(timestamp, DeliveryType.END_WINDOW, fileName);

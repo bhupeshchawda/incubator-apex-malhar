@@ -37,7 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.apex.api.ControlAwareDefaultInputPort;
-import org.apache.apex.api.UserDefinedControlTuple;
+import org.apache.apex.api.operator.ControlTuple;
 import org.apache.apex.malhar.lib.window.windowable.FileWatermark;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.mutable.MutableLong;
@@ -280,7 +280,7 @@ public abstract class AbstractFileOutputOperator<INPUT> extends BaseOperator imp
     }
 
     @Override
-    public boolean processControl(UserDefinedControlTuple tuple)
+    public boolean processControl(ControlTuple tuple)
     {
       if (tuple instanceof FileWatermark.BeginFileWatermark) {
         currentFileName = ((FileWatermark.BeginFileWatermark)tuple).getFileName();

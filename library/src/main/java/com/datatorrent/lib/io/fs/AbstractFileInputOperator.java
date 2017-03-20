@@ -748,7 +748,7 @@ public abstract class AbstractFileInputOperator<T> implements InputOperator, Par
 
         lastScanMillis = System.currentTimeMillis();
       }
-    scanned = true;
+      scanned = true;
     }
   }
 

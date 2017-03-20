@@ -19,7 +19,7 @@
 package org.apache.apex.malhar.lib.window.impl;
 
 import org.apache.apex.api.ControlAwareDefaultInputPort;
-import org.apache.apex.api.UserDefinedControlTuple;
+import org.apache.apex.api.operator.ControlTuple;
 import org.apache.apex.malhar.lib.window.Tuple;
 import org.apache.apex.malhar.lib.window.WatermarkTuple;
 import org.apache.apex.malhar.lib.window.WindowedMergeOperator;
@@ -52,7 +52,7 @@ public class KeyedWindowedMergeOperatorImpl<KeyT, InputT1, InputT2, AccumT, Outp
   public final transient ControlAwareDefaultInputPort<Tuple<KeyValPair<KeyT, InputT2>>> input2 = new ControlAwareDefaultInputPort<Tuple<KeyValPair<KeyT, InputT2>>>()
   {
     @Override
-    public boolean processControl(UserDefinedControlTuple tuple)
+    public boolean processControl(ControlTuple tuple)
     {
       if (tuple instanceof WatermarkTuple) {
         processWatermark2((WatermarkTuple)tuple);

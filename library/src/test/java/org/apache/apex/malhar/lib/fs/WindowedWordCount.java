@@ -29,7 +29,7 @@ public class WindowedWordCount implements StreamingApplication
     input.setEmitBatchSize(1);
     StringToKeyValPair convert1 = dag.addOperator("convert1", new StringToKeyValPair());
     KeyedWindowedOperatorImpl<String, Long, MutableLong, Long> windowedOperator =
-      dag.addOperator("count", new KeyedWindowedOperatorImpl());
+        dag.addOperator("count", new KeyedWindowedOperatorImpl());
     Accumulation<Long, MutableLong, Long> sum = new SumAccumulation();
 
     windowedOperator.setAccumulation(sum);
@@ -75,7 +75,7 @@ public class WindowedWordCount implements StreamingApplication
       lma.prepareDAG(new WindowedWordCount(), conf);
       LocalMode.Controller lc = lma.getController();
       lc.setHeartbeatMonitoringEnabled(true);
-      lc.run(1000*1000);
+      lc.run(1000 * 1000);
     } catch (Exception e) {
       e.printStackTrace();
     }

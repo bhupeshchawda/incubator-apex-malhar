@@ -48,9 +48,9 @@ public interface WindowOption
   class TimeWindows implements WindowOption
   {
     @FieldSerializer.Bind(JavaSerializer.class)
-    private Duration duration;
+    protected Duration duration;
 
-    private TimeWindows()
+    protected TimeWindows()
     {
       // for kryo
     }
@@ -79,6 +79,20 @@ public interface WindowOption
     public SlidingTimeWindows slideBy(Duration duration)
     {
       return new SlidingTimeWindows(this.duration, duration);
+    }
+  }
+
+  class SequenceWindows extends WindowOption.TimeWindows
+  {
+    private SequenceWindows()
+    {
+      duration = Duration.millis(1);
+    }
+
+    @Override
+    public SlidingTimeWindows slideBy(Duration duration)
+    {
+      throw new UnsupportedOperationException();
     }
   }
 

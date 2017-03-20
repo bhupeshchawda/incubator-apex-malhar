@@ -1,7 +1,7 @@
 package org.apache.apex.malhar.lib.fs;
 
 import org.apache.apex.api.ControlAwareDefaultInputPort;
-import org.apache.apex.api.UserDefinedControlTuple;
+import org.apache.apex.api.operator.ControlTuple;
 import org.apache.apex.malhar.lib.window.Tuple;
 import org.apache.apex.malhar.lib.window.windowable.FileWatermark;
 
@@ -16,7 +16,7 @@ public class StringToKeyValPair extends BaseOperator
   public final transient ControlAwareDefaultInputPort<String> input = new ControlAwareDefaultInputPort<String>()
   {
     @Override
-    public boolean processControl(UserDefinedControlTuple tuple)
+    public boolean processControl(ControlTuple tuple)
     {
       if (tuple instanceof FileWatermark.BeginFileWatermark) {
         timestamp = ((FileWatermark.BeginFileWatermark)tuple).getTimestamp();

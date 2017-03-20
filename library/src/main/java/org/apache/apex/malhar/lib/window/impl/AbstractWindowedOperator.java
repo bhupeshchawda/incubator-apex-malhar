@@ -34,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.apex.api.ControlAwareDefaultInputPort;
-import org.apache.apex.api.UserDefinedControlTuple;
+import org.apache.apex.api.operator.ControlTuple;
 import org.apache.apex.malhar.lib.state.spillable.WindowListener;
 import org.apache.apex.malhar.lib.window.Accumulation;
 import org.apache.apex.malhar.lib.window.ImplicitWatermarkGenerator;
@@ -109,7 +109,7 @@ public abstract class AbstractWindowedOperator<InputT, OutputT, DataStorageT ext
   public final transient ControlAwareDefaultInputPort<Tuple<InputT>> input = new ControlAwareDefaultInputPort<Tuple<InputT>>()
   {
     @Override
-    public boolean processControl(UserDefinedControlTuple tuple)
+    public boolean processControl(ControlTuple tuple)
     {
       if (tuple instanceof WatermarkTuple) {
         processWatermark((WatermarkTuple)tuple);
