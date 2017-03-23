@@ -38,8 +38,9 @@ public class FileWatermark implements WatermarkTuple
 
   public static class BeginFileWatermark extends FileWatermark
   {
-    public BeginFileWatermark()
+    private BeginFileWatermark()
     {
+      // for kryo
     }
 
     public BeginFileWatermark(long timestamp, String fileName)
@@ -50,8 +51,9 @@ public class FileWatermark implements WatermarkTuple
 
   public static class EndFileWatermark extends FileWatermark
   {
-    public EndFileWatermark()
+    private EndFileWatermark()
     {
+      //for kryo
     }
 
     public EndFileWatermark(long timestamp, String fileName)

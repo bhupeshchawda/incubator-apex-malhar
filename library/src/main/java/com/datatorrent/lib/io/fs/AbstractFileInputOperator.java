@@ -144,7 +144,7 @@ public abstract class AbstractFileInputOperator<T> implements InputOperator, Par
   protected boolean waitTillNextWindow = false;
   protected boolean scanned = false;
   protected boolean shutDown = false;
-  protected boolean batchMode = true;
+  protected boolean poll = false;
 
   /**
    * Class representing failed file, When read fails on a file in middle, then the file is
@@ -732,7 +732,7 @@ public abstract class AbstractFileInputOperator<T> implements InputOperator, Par
   protected void scanDirectory()
   {
     if (scanned) {
-      if (batchMode) {
+      if (!poll) {
         shutDown = true;
       }
     } else {

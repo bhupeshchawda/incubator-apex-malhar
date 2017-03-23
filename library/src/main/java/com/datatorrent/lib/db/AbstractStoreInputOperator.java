@@ -70,6 +70,12 @@ public abstract class AbstractStoreInputOperator<T, S extends Connectable> imple
   }
 
   @Override
+  public void emitTuples()
+  {
+
+  }
+
+  @Override
   public void endWindow()
   {
   }
