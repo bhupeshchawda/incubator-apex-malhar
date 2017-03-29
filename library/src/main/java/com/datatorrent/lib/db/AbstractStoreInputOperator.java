@@ -20,9 +20,13 @@ package com.datatorrent.lib.db;
 
 import java.io.IOException;
 
+import org.apache.apex.api.ControlAwareDefaultOutputPort;
+import org.apache.apex.api.operator.ControlTuple;
+import org.apache.apex.malhar.lib.window.windowable.BatchWatermark;
+
 import com.datatorrent.api.Context.OperatorContext;
-import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.InputOperator;
+import com.datatorrent.common.util.BaseOperator;
 
 /**
  * This is the base implementation of an input adapter which reads from a store.&nbsp;
@@ -41,8 +45,10 @@ public abstract class AbstractStoreInputOperator<T, S extends Connectable> imple
   /**
    * The output port on which tuples read form a store are emitted.
    */
-  public final transient DefaultOutputPort<T> outputPort = new DefaultOutputPort<T>();
+  public final transient ControlAwareDefaultOutputPort<T> outputPort = new ControlAwareDefaultOutputPort<T>();
   protected S store;
+  private boolean startEmitted;
+  protected boolean shutdown;
   /**
    * Gets the store.
    *
@@ -67,6 +73,12 @@ public abstract class AbstractStoreInputOperator<T, S extends Connectable> imple
   @Override
   public void beginWindow(long l)
   {
+    if (shutdown) {
+      BaseOperator.shutdown();
+    }
+    if (!startEmitted) {
+      outputPort.emitControl(new BatchWatermark(0, ControlTuple.DeliveryType.IMMEDIATE, false));
+    }
   }
 
   @Override
@@ -78,6 +90,9 @@ public abstract class AbstractStoreInputOperator<T, S extends Connectable> imple
   @Override
   public void endWindow()
   {
+    if (shutdown) {
+      outputPort.emitControl(new BatchWatermark(Long.MAX_VALUE, ControlTuple.DeliveryType.END_WINDOW, true));
+    }
   }
 
   @Override

@@ -3,7 +3,7 @@ package org.apache.apex.malhar.lib.fs;
 import org.apache.apex.api.ControlAwareDefaultInputPort;
 import org.apache.apex.api.operator.ControlTuple;
 import org.apache.apex.malhar.lib.window.Tuple;
-import org.apache.apex.malhar.lib.window.windowable.FileWatermark;
+import org.apache.apex.malhar.lib.window.windowable.BatchWatermark;
 
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.common.util.BaseOperator;
@@ -18,10 +18,10 @@ public class StringToKeyValPair extends BaseOperator
     @Override
     public boolean processControl(ControlTuple tuple)
     {
-      if (tuple instanceof FileWatermark.BeginFileWatermark) {
-        timestamp = ((FileWatermark.BeginFileWatermark)tuple).getTimestamp();
-      } else if (tuple instanceof FileWatermark.EndFileWatermark) {
-        timestamp = ((FileWatermark.EndFileWatermark)tuple).getTimestamp();
+      if (tuple instanceof BatchWatermark.BeginFileWatermark) {
+        timestamp = ((BatchWatermark.BeginFileWatermark)tuple).getTimestamp();
+      } else if (tuple instanceof BatchWatermark.EndFileWatermark) {
+        timestamp = ((BatchWatermark.EndFileWatermark)tuple).getTimestamp();
       }
       return false;
     }

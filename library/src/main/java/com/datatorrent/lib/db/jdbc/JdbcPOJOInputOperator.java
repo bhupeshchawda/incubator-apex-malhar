@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import com.datatorrent.api.AutoMetric;
 import com.datatorrent.api.Context;
 import com.datatorrent.api.DefaultOutputPort;
@@ -187,6 +188,7 @@ public class JdbcPOJOInputOperator extends AbstractJdbcInputOperator<Object>
   @Override
   public void beginWindow(long l)
   {
+    super.beginWindow(l);
     windowDone = false;
   }
 
@@ -206,6 +208,7 @@ public class JdbcPOJOInputOperator extends AbstractJdbcInputOperator<Object>
           while (resultSet.next());
         } else {
           windowDone = true;
+          shutdown = true;
         }
         resultSet.close();
       } catch (SQLException ex) {

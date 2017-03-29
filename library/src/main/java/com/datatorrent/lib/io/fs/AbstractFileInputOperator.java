@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.apex.api.ControlAwareDefaultOutputPort;
 import org.apache.apex.malhar.lib.fs.LineByLineFileInputOperator;
 import org.apache.apex.malhar.lib.wal.WindowDataManager;
-import org.apache.apex.malhar.lib.window.windowable.FileWatermark;
+import org.apache.apex.malhar.lib.window.windowable.BatchWatermark;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -815,7 +815,7 @@ public abstract class AbstractFileInputOperator<T> implements InputOperator, Par
   {
     currentFile = path.toString();
     currentFileName = path.getName();
-    output.emitControl(new FileWatermark.BeginFileWatermark(fileIndex, currentFileName));
+    output.emitControl(new BatchWatermark.BeginFileWatermark(fileIndex, currentFileName));
 
     offset = 0;
     retryCount = 0;
@@ -833,7 +833,7 @@ public abstract class AbstractFileInputOperator<T> implements InputOperator, Par
       is.close();
     }
 
-    output.emitControl(new FileWatermark.EndFileWatermark(++fileIndex, currentFileName));
+    output.emitControl(new BatchWatermark.EndFileWatermark(++fileIndex, currentFileName));
     waitTillNextWindow = true;
 
     currentFile = null;

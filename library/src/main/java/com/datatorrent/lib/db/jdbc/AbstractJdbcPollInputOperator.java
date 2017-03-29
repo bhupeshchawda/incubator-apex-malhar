@@ -197,6 +197,7 @@ public abstract class AbstractJdbcPollInputOperator<T> extends AbstractStoreInpu
   @Override
   public void beginWindow(long windowId)
   {
+    super.beginWindow(windowId);
     currentWindowId = windowId;
     if (currentWindowId <= windowManager.getLargestCompletedWindow()) {
       try {
@@ -224,6 +225,8 @@ public abstract class AbstractJdbcPollInputOperator<T> extends AbstractStoreInpu
       T obj = emitQueue.poll();
       if (obj != null) {
         emitTuple(obj);
+      } else {
+        shutdown = true;
       }
       lastEmittedRow++;
     }
@@ -246,6 +249,7 @@ public abstract class AbstractJdbcPollInputOperator<T> extends AbstractStoreInpu
       store.disconnect();
       DTThrowable.rethrow(threadException.get());
     }
+    super.endWindow();
   }
 
   @Override
