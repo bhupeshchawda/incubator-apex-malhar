@@ -1,4 +1,3 @@
-package org.apache.apex.malhar.contrib.imageIO;
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,8 +15,8 @@ package org.apache.apex.malhar.contrib.imageIO;
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- *
  */
+package org.apache.apex.malhar.contrib.imageIO;
 
 import java.awt.HeadlessException;
 import java.awt.image.BufferedImage;

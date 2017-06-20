@@ -15,7 +15,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- *
  */
 package org.apache.apex.malhar.contrib.imageIO;
 
@@ -37,7 +36,6 @@ import ij.io.FileSaver;
  * Data POJO is uniform across all operators under imageIO.
  * Image processing can be very CPU intensive and hence time consuming. It is recommended to use the slowDown=true
  * property and appropriately set slowDownMills (per tuple) to avoid back pressure on down stream operators.
- *
  */
 
 public class ImageReader extends AbstractFileInputOperator<Data>
