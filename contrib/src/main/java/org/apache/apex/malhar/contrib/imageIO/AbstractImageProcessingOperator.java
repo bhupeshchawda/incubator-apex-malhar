@@ -56,13 +56,10 @@ public abstract class AbstractImageProcessingOperator extends BaseOperator
     {
       filePath = tuple.fileName;
       fileType = "jpg";
-      for( int i = 0; i < compatibleFileTyes.length; i++)
-      {
-        if( filePath.contains(compatibleFileTyes[i]))
-        {
+      for ( int i = 0; i < compatibleFileTyes.length; i++) {
+        if ( filePath.contains(compatibleFileTyes[i])) {
           fileType = compatibleFileTyes[i];
-          if( fileType.equalsIgnoreCase("jpeg"))
-          {
+          if ( fileType.equalsIgnoreCase("jpeg")) {
             fileType = "jpg";
           }
         }
