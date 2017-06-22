@@ -34,9 +34,9 @@ import net.coobird.thumbnailator.Thumbnails;
  *
  */
 
-public class Resize extends AbstractImageProcessingOperator
+public class ImageResizeOperator extends AbstractImageProcessingOperator
 {
-  private static final Logger LOG = LoggerFactory.getLogger(Resize.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ImageResizeOperator.class);
   private int width = 0;
   private int height = 0;
   public double scale = 1;
@@ -46,6 +46,10 @@ public class Resize extends AbstractImageProcessingOperator
     return scale;
   }
 
+  /**
+   * Set the ratio at which the image will be scaled. Maintains the original aspect ratio of the image.
+   * @param scale
+   */
   public void setScale(double scale)
   {
     this.scale = scale;
@@ -56,6 +60,10 @@ public class Resize extends AbstractImageProcessingOperator
     return width;
   }
 
+  /**
+   * Width of resized image in pixels.
+   * @param width
+   */
   public void setWidth(int width)
   {
     this.width = width;
@@ -66,6 +74,10 @@ public class Resize extends AbstractImageProcessingOperator
     return height;
   }
 
+  /**
+   * Height of resized image in pixels.
+   * @param height
+   */
   public void setHeight(int height)
   {
     this.height = height;
@@ -76,14 +88,14 @@ public class Resize extends AbstractImageProcessingOperator
     try {
       bufferedImage = byteArrayToBufferedImage(data.bytesImage);
       BufferedImage resizedImage;
-      LOG.info("fileTypeIs:" + AbstractImageProcessingOperator.fileType + " scale:" + scale);
+      LOG.info("fileTypeIs:" + data.imageType + " scale:" + scale);
       //BufferedImage resizedImage = Thumbnails.of(bufferedImage).size(width, height).asBufferedImage();
       if (height == width && width == 0) {
         resizedImage = Thumbnails.of(bufferedImage).scale(scale).asBufferedImage();
       } else {
         resizedImage = Thumbnails.of(bufferedImage).size(width, height).asBufferedImage();
       }
-      data.bytesImage = bufferedImageToByteArray(resizedImage);
+      data.bytesImage = bufferedImageToByteArray(resizedImage,data.imageType);
       output.emit(data);
     } catch (Exception e) {
       LOG.debug("Error is " + e.getMessage());

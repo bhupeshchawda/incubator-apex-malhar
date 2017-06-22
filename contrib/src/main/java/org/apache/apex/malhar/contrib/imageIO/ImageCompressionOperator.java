@@ -36,9 +36,9 @@ import org.slf4j.LoggerFactory;
  * 1.0f is the maximum quality image i.e lowest compression.
  * 0.0f is the minimum quality image i.e maximum compression.
  */
-public class Compress extends AbstractImageProcessingOperator
+public class ImageCompressionOperator extends AbstractImageProcessingOperator
 {
-  private static final Logger LOG = LoggerFactory.getLogger(Compress.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ImageCompressionOperator.class);
   @NotNull
   public float compressionRatio;
 
@@ -47,6 +47,10 @@ public class Compress extends AbstractImageProcessingOperator
     return compressionRatio;
   }
 
+  /**
+   * Sets compressionRatio value set in properties.xml
+   * @param compressionRatio
+   */
   public void setCompressionRatio(float compressionRatio)
   {
     this.compressionRatio = compressionRatio;
@@ -58,7 +62,7 @@ public class Compress extends AbstractImageProcessingOperator
       try {
         bufferedImage = byteArrayToBufferedImage(data.bytesImage);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName(AbstractImageProcessingOperator.fileType);
+        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName(data.imageType);
         ImageWriter writer = writers.next();
         writer.setOutput(new MemoryCacheImageOutputStream(baos));
         ImageWriteParam param = writer.getDefaultWriteParam();

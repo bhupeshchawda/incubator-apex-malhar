@@ -40,13 +40,11 @@ import com.datatorrent.common.util.BaseOperator;
 public abstract class AbstractImageProcessingOperator extends BaseOperator
 {
   private static final Logger LOG = LoggerFactory.getLogger(AbstractImageProcessingOperator.class);
-  public static String fileType;
-
+  public  String fileType;
   public final transient DefaultOutputPort<Data> output = new DefaultOutputPort<>();
   public String filePath;
   public transient BufferedImage bufferedImage = null;
   public int bufferedImageType;
-  String[] compatibleFileTyes = {"jpg", "png", "jpeg", "fits", "gif", "tif"};
   public final transient DefaultInputPort<Data> input = new DefaultInputPort<Data>()
   {
 
@@ -54,15 +52,7 @@ public abstract class AbstractImageProcessingOperator extends BaseOperator
     public void process(Data tuple)
     {
       filePath = tuple.fileName;
-      fileType = "jpg";
-      for ( int i = 0; i < compatibleFileTyes.length; i++) {
-        if ( filePath.contains(compatibleFileTyes[i])) {
-          fileType = compatibleFileTyes[i];
-          if ( fileType.equalsIgnoreCase("jpeg")) {
-            fileType = "jpg";
-          }
-        }
-      }
+      fileType = tuple.imageType;
       LOG.info("file type" + fileType);
       processTuple(tuple);
     }
@@ -82,11 +72,11 @@ public abstract class AbstractImageProcessingOperator extends BaseOperator
     return bufferedImage;
   }
 
-  public byte[] bufferedImageToByteArray(BufferedImage bufferedImage)
+  public byte[] bufferedImageToByteArray(BufferedImage bufferedImage, String fileType)
   {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     try {
-      ImageIO.write(bufferedImage, AbstractImageProcessingOperator.fileType, baos);
+      ImageIO.write(bufferedImage,fileType, baos);
     } catch (IOException e) {
       LOG.debug("Error in reading file " + e.getStackTrace());
     }

@@ -53,12 +53,19 @@ public class ImageReader extends AbstractFileInputOperator<Data>
   private transient Path filePath;
   private Boolean slowDown = true;
   private long slowDownMills = 100;
+  public transient String fileType="";
+  private String[] compatibleFileTypes = {"jpg", "png", "jpeg", "fits", "gif", "tif"};
 
   public Boolean getSlowDown()
   {
     return slowDown;
   }
 
+  /**
+   * Set the boolean value from properties.xml. True will slow down emit tuple by set milliseconds.
+   * Default value is true.
+   * @param slowDown
+   */
   public void setSlowDown(Boolean slowDown)
   {
     this.slowDown = slowDown;
@@ -69,9 +76,33 @@ public class ImageReader extends AbstractFileInputOperator<Data>
     return slowDownMills;
   }
 
+  /**
+   * Set the interval between two emit tuple calls in milliseconds.
+   * Default value is 100 ms.
+   * @param slowDownMills
+   */
   public void setSlowDownMills(long slowDownMills)
   {
     this.slowDownMills = slowDownMills;
+  }
+
+  public boolean setFileType()
+  {
+    for (int i = 0; i < compatibleFileTypes.length; i++) {
+      if ( filePath.toString().contains(compatibleFileTypes[i])) {
+        fileType = compatibleFileTypes[i];
+        if ( fileType.equalsIgnoreCase("jpeg")) {
+          fileType = "jpg";
+        }
+      }
+    }
+    if(fileType.isEmpty())
+    {
+      return false;
+    }
+    else {
+      return true;
+    }
   }
 
   @Override
@@ -92,7 +123,6 @@ public class ImageReader extends AbstractFileInputOperator<Data>
       super.emitTuples();
       return;
     }
-
     // we have end-of-file, so emit no further tuples till next window; relax for imageInBytes bit
     try {
       Thread.sleep(pauseTime);
@@ -115,6 +145,7 @@ public class ImageReader extends AbstractFileInputOperator<Data>
     filePath = curPath;
     filePathStr = filePath.toString();
     LOG.info("readOpen " + START_FILE + filePath.getName());
+    setFileType();
     InputStream is = super.openFile(filePath);
     if (!filePathStr.contains(".fits")) {
       imageInBytes = IOUtils.toByteArray(is);
@@ -142,13 +173,13 @@ public class ImageReader extends AbstractFileInputOperator<Data>
   @Override
   protected Data readEntity() throws IOException
   {
-    //try{Thread.sleep(500);}catch (Exception e){LOG.info("Read Sleep"+e.getMessage());}
     LOG.debug("read entity was called" + currentFile);
     if (countImageSent < 1) {
       countImageSent++;
       Data data = new Data();
       data.bytesImage = imageInBytes;
       data.fileName = filePath.getName().toString();
+      data.imageType = fileType;
       return data;
     }
     LOG.debug("readEntity: EOF for {}", filePath);

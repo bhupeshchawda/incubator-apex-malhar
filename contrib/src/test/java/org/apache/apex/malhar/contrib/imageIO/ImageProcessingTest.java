@@ -33,8 +33,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.io.FileUtils;
 
+import static org.junit.Assert.assertEquals;
 
-public class ImageProcessingTest extends Resize
+
+public class ImageProcessingTest extends ImageResizeOperator
 {
   private Data data = new Data();
   File imageFile;
@@ -45,6 +47,7 @@ public class ImageProcessingTest extends Resize
   {
     String soPath;
     String filePath;
+    String[] compatibleFileTypes = {"jpg", "png", "jpeg", "fits", "gif", "tif"};
     BufferedImage bufferedImage = null;
     imageFile = new File("src/test/resources/TestImages/TestImage.jpg");
     filePath = imageFile.getAbsolutePath();
@@ -57,49 +60,34 @@ public class ImageProcessingTest extends Resize
     } catch (IOException e) {
       LOG.info("Error is " + e.getMessage());
     }
-    data.bytesImage = bufferedImageToByteArray(bufferedImage);
+    for (int i = 0; i < compatibleFileTypes.length; i++) {
+      if ( filePath.contains(compatibleFileTypes[i])) {
+        data.imageType = compatibleFileTypes[i];
+        if ( data.imageType.equalsIgnoreCase("jpeg")) {
+          data.imageType = "jpg";
+        }
+      }
+    }
     data.fileName = imageFile.getName();
-    if (filePath.contains(".png")) {
-      AbstractImageProcessingOperator.fileType = "png";
-    }
-    if (filePath.contains(".jpg")) {
-      AbstractImageProcessingOperator.fileType = "jpg";
-    }
-    if (filePath.contains(".jpeg")) {
-      AbstractImageProcessingOperator.fileType = "jpeg";
-    }
-    if (filePath.contains(".fits")) {
-      AbstractImageProcessingOperator.fileType = "fits";
-    }
-    if (filePath.contains(".gif")) {
-      AbstractImageProcessingOperator.fileType = "gif";
-    }
-    if (filePath.contains(".tif")) {
-      AbstractImageProcessingOperator.fileType = "tif";
-    }
+    data.bytesImage = bufferedImageToByteArray(bufferedImage, data.imageType);
   }
 
   @Test
   public void resizeTest()
   {
-    ImageProcessingTest resizeTest = new ImageProcessingTest();
-    resizeTest.scale = 0.5;
+    ImageResizeOperator imageResizer = new ImageResizeOperator();
+    imageResizer.scale = 0.5;
     BufferedImage original = byteArrayToBufferedImage(data.bytesImage);
-    resizeTest.resize(data);
+    imageResizer.resize(data);
     BufferedImage result = byteArrayToBufferedImage(data.bytesImage);
-    Boolean pass = false;
-    if ((original.getWidth() * resizeTest.scale) == result.getWidth()) {
-      pass = true;
-    }
-    Assert.assertEquals("Expectation", true, pass);
+    Assert.assertEquals((original.getWidth() * imageResizer.scale),(double) result.getWidth(),0.0);
   }
 
   @Test
   public void compressTest()
   {
-    Boolean pass = false;
     File compressedFile = new File("src/test/resources/TestImages/CompressedTestImage.jpg");
-    Compress compress = new Compress();
+    ImageCompressionOperator compress = new ImageCompressionOperator();
     compress.compressionRatio = 0.9f;
     compress.compress(data);
     try {
@@ -107,22 +95,18 @@ public class ImageProcessingTest extends Resize
     } catch (IOException e) {
       LOG.debug(e.getMessage());
     }
-    if (imageFile.length() > compressedFile.length() && compress.compressionRatio < 1f) {
-      pass = true;
-    }
-    Assert.assertEquals("Expectation", true, pass);
+    Assert.assertEquals(true,(imageFile.length() > compressedFile.length()));
+    Assert.assertEquals(true,(compress.compressionRatio < 1f));
+
   }
 
   @Test
   public void fileFormatConversionTest()
   {
-    Boolean pass = false;
-    FileFormatConverter fileFormatConverter = new FileFormatConverter();
+    ImageFormatConversionOperator fileFormatConverter = new ImageFormatConversionOperator();
     fileFormatConverter.toFileType = "png";
     fileFormatConverter.converter(data);
-    if (data.fileName.contains(fileFormatConverter.toFileType) && !data.fileName.contains(AbstractImageProcessingOperator.fileType)) {
-      pass = true;
-    }
-    Assert.assertEquals("Expectation", true, pass);
+    Assert.assertEquals(true, (data.imageType.equalsIgnoreCase(fileFormatConverter.toFileType)));
+
   }
 }

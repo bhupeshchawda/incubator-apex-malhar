@@ -40,9 +40,9 @@ import ij.process.ImageProcessor;
  * by specifying the toFileType property in properties.xml
  *
  */
-public class FileFormatConverter extends AbstractImageProcessingOperator
+public class ImageFormatConversionOperator extends AbstractImageProcessingOperator
 {
-  private static final Logger LOG = LoggerFactory.getLogger(FileFormatConverter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ImageFormatConversionOperator.class);
 
   @NotNull
   public String toFileType;
@@ -52,6 +52,10 @@ public class FileFormatConverter extends AbstractImageProcessingOperator
     return toFileType;
   }
 
+  /**
+   * Sets the resultant image format.(eg. png)
+   * @param toFileType
+   */
   public void setToFileType(String toFileType)
   {
     this.toFileType = toFileType;
@@ -59,7 +63,7 @@ public class FileFormatConverter extends AbstractImageProcessingOperator
 
   protected void converter(Data data)
   {
-    String fromFileType = AbstractImageProcessingOperator.fileType;
+    String fromFileType = data.imageType;
     if (!fromFileType.contains("fit")) {
       LOG.info("toFileType: " + toFileType + " fromFileType " + fromFileType);
       bufferedImage = byteArrayToBufferedImage(data.bytesImage);
@@ -80,6 +84,7 @@ public class FileFormatConverter extends AbstractImageProcessingOperator
       }
       data.bytesImage = byteArrayOutputStream.toByteArray();
       data.fileName = data.fileName.replace(fromFileType, toFileType);
+      data.imageType = toFileType;
       LOG.info("fileName " + data.fileName);
       try {
         byteArrayOutputStream.flush();
@@ -109,6 +114,7 @@ public class FileFormatConverter extends AbstractImageProcessingOperator
       }
       data.bytesImage = byteArrayOutputStream.toByteArray();
       data.fileName = data.fileName.replace(fromFileType, toFileType);
+      data.imageType = toFileType;
       LOG.info("fileName " + data.fileName);
       try {
         byteArrayOutputStream.flush();

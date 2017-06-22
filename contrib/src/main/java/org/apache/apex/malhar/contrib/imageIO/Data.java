@@ -26,4 +26,5 @@ public class Data
 {
   byte[] bytesImage;
   String fileName;
+  String imageType; // jpg,png etc
 }
